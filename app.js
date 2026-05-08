@@ -86,6 +86,12 @@ function switchTab(tabId) {
   }
 }
 
+// --- Control Sections ---
+function toggleSection(header) {
+  const section = header.closest('.control-section');
+  section.classList.toggle('collapsed');
+}
+
 // --- Text Tab Functions ---
 function generateAscii() {
   const text = document.getElementById('textInput').value || ' ';
@@ -385,13 +391,35 @@ function loadImage(file) {
     img.onload = () => {
       state.image.currentImage = img;
       document.getElementById('uploadPlaceholder').style.display = 'none';
-      document.getElementById('wallpaperCanvas').style.display = 'block';
-      document.getElementById('imgAsciiOutput').style.display = 'none';
-      convertImage();
+      // Show original image first
+      showOriginalPreview(img);
     };
     img.src = event.target.result;
   };
   reader.readAsDataURL(file);
+}
+
+// Show original uploaded image as preview
+function showOriginalPreview(img) {
+  const canvas = document.getElementById('wallpaperCanvas');
+  const ctx = canvas.getContext('2d');
+  const width = state.image.deviceWidth;
+  const height = state.image.deviceHeight;
+
+  canvas.width = width;
+  canvas.height = height;
+
+  // Draw image to fit canvas
+  const source = getCoverSourceRect(img, width, height);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(img, source.x, source.y, source.width, source.height, 0, 0, width, height);
+
+  canvas.style.display = 'block';
+  document.getElementById('imgAsciiOutput').style.display = 'none';
+  document.getElementById('imgMetaLines').textContent = 'original preview';
+  document.getElementById('imgMetaCols').textContent = `${width}×${height}`;
+  document.getElementById('imgMetaChars').textContent = '';
 }
 
 function updateImgWidth(val) {
@@ -1825,6 +1853,55 @@ function shareOutput() {
   }
 }
 
+// --- Loading/Error States ---
+
+function showImgLoading(show) {
+  document.getElementById('imgLoadingOverlay').style.display = show ? 'flex' : 'none';
+  document.getElementById('uploadPlaceholder').style.display = 'none';
+  document.getElementById('wallpaperCanvas').style.display = 'none';
+  document.getElementById('imgAsciiOutput').style.display = 'none';
+}
+
+function showImgError(message) {
+  document.getElementById('imgErrorMessage').textContent = message || 'Failed to load image';
+  document.getElementById('imgErrorOverlay').style.display = 'flex';
+  document.getElementById('uploadPlaceholder').style.display = 'none';
+  document.getElementById('wallpaperCanvas').style.display = 'none';
+  document.getElementById('imgAsciiOutput').style.display = 'none';
+}
+
+function hideImgError() {
+  document.getElementById('imgErrorOverlay').style.display = 'none';
+}
+
+function retryImageLoad() {
+  hideImgError();
+  const input = document.getElementById('imageInput');
+  if (input && input.files && input.files[0]) {
+    loadImage(input.files[0]);
+  } else {
+    document.getElementById('uploadPlaceholder').style.display = 'flex';
+  }
+}
+
+function showTextLoading(show) {
+  document.getElementById('textLoadingOverlay').style.display = show ? 'flex' : 'none';
+}
+
+function showTextError(message) {
+  document.getElementById('textErrorMessage').textContent = message || 'Invalid input';
+  document.getElementById('textErrorOverlay').style.display = 'flex';
+}
+
+function hideTextError() {
+  document.getElementById('textErrorOverlay').style.display = 'none';
+}
+
+function retryTextGenerate() {
+  hideTextError();
+  generateAscii();
+}
+
 // --- Utils ---
 
 function showToast(message, type = 'success') {
@@ -1840,15 +1917,44 @@ function showToast(message, type = 'success') {
 function initParticles() {
   const container = document.getElementById('bgParticles');
   if (!container) return;
-  
-  // Create some simple floating particles for background effect
-  for (let i = 0; i < 20; i++) {
+
+  // Grid particles - sit in grid cells, staggered
+  const gridChars = '┌┐└┘├┤┬┴┼═║╔╗╚╝█░▒▓';
+  for (let i = 0; i < 40; i++) {
     const p = document.createElement('div');
-    p.className = 'particle';
-    p.style.left = Math.random() * 100 + 'vw';
-    p.style.top = Math.random() * 100 + 'vh';
-    p.style.animationDuration = (Math.random() * 20 + 10) + 's';
-    p.style.animationDelay = (Math.random() * -20) + 's';
+    p.className = 'grid-particle';
+    p.textContent = gridChars[Math.floor(Math.random() * gridChars.length)];
+    p.style.left = (Math.random() * 100) + '%';
+    p.style.top = (Math.random() * 100) + '%';
+    p.style.opacity = Math.random() * 0.15 + 0.03;
     container.appendChild(p);
+  }
+
+  // Floating particles
+  const floatChars = '·:!|▒▓█▀▄▌▐░ █';
+  for (let i = 0; i < 15; i++) {
+    const p = document.createElement('div');
+    p.className = 'ascii-particle';
+    p.textContent = floatChars[Math.floor(Math.random() * floatChars.length)];
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.fontSize = (Math.random() * 18 + 14) + 'px';
+    p.style.opacity = Math.random() * 0.3 + 0.1;
+    p.style.animationDuration = (Math.random() * 25 + 18) + 's';
+    p.style.animationDelay = (Math.random() * -30) + 's';
+    if (Math.random() > 0.5) {
+      p.style.textShadow = '0 0 10px var(--accent)';
+    }
+    container.appendChild(p);
+  }
+
+  // Scattered binary
+  for (let i = 0; i < 20; i++) {
+    const b = document.createElement('div');
+    b.className = 'binary-particle';
+    b.textContent = Math.random() > 0.5 ? '0' : '1';
+    b.style.left = Math.random() * 100 + '%';
+    b.style.top = Math.random() * 100 + '%';
+    b.style.opacity = Math.random() * 0.12 + 0.03;
+    container.appendChild(b);
   }
 }

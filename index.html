@@ -5,9 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Empty Wall</title>
   <meta name="description" content="Turn images into high-resolution ASCII wallpapers for desktop, phone, tablet, and square formats." />
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
+  <meta property="og:title" content="Empty Wall - ASCII Wallpaper Designer" />
+  <meta property="og:description" content="Turn images into high-resolution ASCII wallpapers" />
+  <meta property="og:image" content="assets/images/og.svg" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -18,8 +23,8 @@
   <header class="header">
     <div class="header-inner">
       <div class="logo">
-        <span class="logo-icon">▦</span>
-        <span class="logo-text">Empty<span class="logo-accent">Wall</span></span>
+        <span class="logo-icon">[#]</span>
+        <span class="logo-text">EMPTY<span class="logo-accent">WALL</span></span>
       </div>
       <nav class="nav-tabs">
         <button class="nav-tab active" id="tabImageBtn" onclick="switchTab('image')">
@@ -183,6 +188,15 @@
             </div>
           </div>
           <div class="output-container glass" id="outputContainer">
+            <div class="loading-overlay" id="textLoadingOverlay" style="display:none">
+              <div class="loading-spinner"></div>
+              <span class="loading-text">Generating...</span>
+            </div>
+            <div class="error-overlay" id="textErrorOverlay" style="display:none">
+              <span class="error-icon">⚠️</span>
+              <span class="error-message" id="textErrorMessage">Invalid input</span>
+              <button class="error-retry" onclick="retryTextGenerate()">Retry</button>
+            </div>
             <pre class="ascii-output" id="asciiOutput"></pre>
           </div>
           <div class="output-meta">
@@ -199,232 +213,264 @@
       <div class="workspace">
         <!-- Left: Controls -->
         <div class="controls-panel glass">
-          <div class="section-label">Image</div>
-          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
-            <div class="upload-icon">🖼️</div>
-            <div class="upload-text">Drop image here<br/><small>click, drop, or paste screenshot</small></div>
-            <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)" />
-          </div>
-
-          <div class="section-label" style="margin-top:1.5rem">Wallpaper</div>
-
-          <div class="control-row">
-            <label for="deviceSelect">Device</label>
-            <select id="deviceSelect" onchange="updateDevice(this.value)">
-              <option value="1920x1080" selected>Desktop 1080p</option>
-              <option value="2560x1440">Desktop 1440p</option>
-              <option value="3840x2160">Desktop 4K</option>
-              <option value="1179x2556">iPhone</option>
-              <option value="1080x2400">Android</option>
-              <option value="2048x2732">iPad</option>
-              <option value="1080x1080">Square</option>
-            </select>
-          </div>
-
-          <div class="control-row">
-            <label for="wallpaperStyle">Style</label>
-            <select id="wallpaperStyle" onchange="updateWallpaperStyle(this.value)">
-              <option value="wired" selected>Wired Mono</option>
-              <option value="terminal">Terminal Green</option>
-              <option value="blueprint">Blueprint</option>
-              <option value="amber">Amber Print</option>
-              <option value="ink">Ink Wash</option>
-            </select>
-          </div>
-
-          <div class="control-row">
-            <label for="artTypeSelect">Art Type</label>
-            <select id="artTypeSelect" onchange="updateArtType(this.value)">
-              <optgroup label="Visual Art">
-                <option value="abstract">Abstract Field</option>
-                <option value="watercolor">Watercolor</option>
-                <option value="cutpaper">Cut Paper</option>
-                <option value="halftone">Halftone Dots</option>
-                <option value="mosaic">Mosaic Tiles</option>
-                <option value="contour">Contour Map</option>
-                <option value="lowpoly">Low Poly</option>
-                <option value="poster" selected>Poster Paint</option>
-                <option value="neon">Neon Glow</option>
-                <option value="blueprintArt">Blueprint Lines</option>
-                <option value="inksketch">Ink Sketch</option>
-                <option value="oilpaint">Oil Paint</option>
-                <option value="stainedglass">Stained Glass</option>
-                <option value="pixelart">Pixel Art</option>
-                <option value="duotone">Duotone</option>
-                <option value="risograph">Risograph</option>
-                <option value="pencil">Pencil Drawing</option>
-              </optgroup>
-              <optgroup label="Text Art">
-                <option value="ascii">ASCII Sketch</option>
-                <option value="braille">Braille Detail</option>
-                <option value="blocks">Block Poster</option>
-                <option value="dots">Dot Matrix</option>
-                <option value="line">Line Etch</option>
-              </optgroup>
-            </select>
-          </div>
-
-          <div class="control-row">
-            <label for="movementSelect">Movement</label>
-            <select id="movementSelect" onchange="updateMovement(this.value)">
-              <option value="none" selected>None</option>
-              <option value="impressionism">Impressionism</option>
-              <option value="cubism">Cubism</option>
-              <option value="bauhaus">Bauhaus</option>
-              <option value="pop">Pop Art</option>
-              <option value="surrealism">Surrealism</option>
-              <option value="opart">Op Art</option>
-              <option value="ukiyoe">Ukiyo-e</option>
-              <option value="artdeco">Art Deco</option>
-              <option value="brutalism">Brutalism</option>
-              <option value="glitch">Glitch Art</option>
-            </select>
-          </div>
-
-          <div class="control-row">
-            <label for="funkySelect">Funky</label>
-            <select id="funkySelect" onchange="updateFunkyMode(this.value)">
-              <option value="none" selected>None</option>
-              <option value="vhs">VHS</option>
-              <option value="acid">Acid Poster</option>
-              <option value="vaporwave">Vaporwave</option>
-              <option value="comic">Comic Book</option>
-              <option value="chrome">Y2K Chrome</option>
-              <option value="cyberpunk">Cyberpunk</option>
-            </select>
-          </div>
-
-          <div class="control-row">
-            <label for="chaosRange">Chaos <span id="chaosVal">0</span></label>
-            <input type="range" id="chaosRange" min="0" max="100" step="1" value="0" oninput="updateChaos(this.value)" />
-          </div>
-
-          <div class="control-row">
-            <label for="compositionSelect">Frame</label>
-            <select id="compositionSelect" onchange="updateComposition(this.value)">
-              <option value="center" selected>Center Crop</option>
-              <option value="left">Left Focus</option>
-              <option value="right">Right Focus</option>
-              <option value="top">Top Focus</option>
-              <option value="bottom">Bottom Focus</option>
-              <option value="fit">Fit Full Image</option>
-            </select>
-          </div>
-
-          <div class="control-row">
-            <label for="zoomRange">Zoom <span id="zoomVal">1.0</span>×</label>
-            <input type="range" id="zoomRange" min="1" max="3" step="0.1" value="1" oninput="updateZoom(this.value)" />
-          </div>
-
-          <div class="control-row">
-            <label for="panXRange">Pan X <span id="panXVal">0</span></label>
-            <input type="range" id="panXRange" min="-100" max="100" step="1" value="0" oninput="updatePanX(this.value)" />
-          </div>
-
-          <div class="control-row">
-            <label for="panYRange">Pan Y <span id="panYVal">0</span></label>
-            <input type="range" id="panYRange" min="-100" max="100" step="1" value="0" oninput="updatePanY(this.value)" />
-          </div>
-
-          <div class="control-row">
-            <label for="textureSelect">Texture</label>
-            <select id="textureSelect" onchange="updateTexture(this.value)">
-              <option value="paper" selected>Paper Grain</option>
-              <option value="grid">Draft Grid</option>
-              <option value="clean">Clean</option>
-              <option value="film">Film Dust</option>
-            </select>
-          </div>
-
-          <div class="control-row">
-            <label for="imgWidth">Detail <span id="imgWidthVal">170</span></label>
-            <input type="range" id="imgWidth" min="80" max="260" step="5" value="170" oninput="updateImgWidth(this.value)" />
-          </div>
-
-          <div class="control-row">
-            <label for="imgContrast">Contrast <span id="imgContrastVal">1.6</span></label>
-            <input type="range" id="imgContrast" min="0.6" max="3.0" step="0.1" value="1.6" oninput="updateImgContrast(this.value)" />
-          </div>
-
-          <div class="control-row">
-            <label for="saturationRange">Saturate <span id="saturationVal">1.0</span></label>
-            <input type="range" id="saturationRange" min="0" max="2" step="0.1" value="1" oninput="updateSaturation(this.value)" />
-          </div>
-
-          <div class="control-row">
-            <label for="warmthRange">Warmth <span id="warmthVal">0</span></label>
-            <input type="range" id="warmthRange" min="-50" max="50" step="1" value="0" oninput="updateWarmth(this.value)" />
-          </div>
-
-          <div class="control-row">
-            <label for="edgeBoost">Edges <span id="edgeBoostVal">1.2</span></label>
-            <input type="range" id="edgeBoost" min="0" max="3" step="0.1" value="1.2" oninput="updateEdgeBoost(this.value)" />
-          </div>
-
-          <div class="control-row">
-            <label for="marginRange">Margin <span id="marginVal">4</span>%</label>
-            <input type="range" id="marginRange" min="0" max="14" step="1" value="4" oninput="updateMargin(this.value)" />
-          </div>
-
-          <div class="control-row">
-            <label>Charset</label>
-            <select id="imgCharset" onchange="convertImage()">
-              <option value="detailed" selected>Detailed</option>
-              <option value="standard">Standard</option>
-              <option value="blocks">Blocks</option>
-              <option value="minimal">Minimal</option>
-              <option value="dots">Dots</option>
-            </select>
-          </div>
-
-          <div class="control-row">
-            <label for="imgColor">Color</label>
-            <div class="color-palette" id="imgColorPalette">
-              <button class="color-swatch" data-color="gradient-cyan" onclick="selectImgColor(this,'gradient-cyan')"></button>
-              <button class="color-swatch" data-color="gradient-green" onclick="selectImgColor(this,'gradient-green')"></button>
-              <button class="color-swatch active" data-color="solid-white" onclick="selectImgColor(this,'solid-white')"></button>
-              <button class="color-swatch" data-color="rainbow" onclick="selectImgColor(this,'rainbow')"></button>
+          <!-- Upload -->
+          <div class="control-section">
+            <div class="section-label">Image</div>
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
+              <div class="upload-icon">🖼️</div>
+              <div class="upload-text">Drop image here<br/><small>click, drop, or paste screenshot</small></div>
+              <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)" />
             </div>
           </div>
 
-          <div class="control-row toggle-row">
-            <label>Auto Dark</label>
-            <label class="toggle">
-              <input type="checkbox" id="autoDarkToggle" checked onchange="convertImage()" />
-              <span class="toggle-slider"></span>
-            </label>
+          <!-- Output Size -->
+          <div class="control-section">
+            <div class="section-label">Output</div>
+            <div class="control-row">
+              <label for="deviceSelect">Device</label>
+              <select id="deviceSelect" onchange="updateDevice(this.value)">
+                <option value="1920x1080" selected>Desktop 1080p</option>
+                <option value="2560x1440">Desktop 1440p</option>
+                <option value="3840x2160">Desktop 4K</option>
+                <option value="1179x2556">iPhone</option>
+                <option value="1080x2400">Android</option>
+                <option value="2048x2732">iPad</option>
+                <option value="1080x1080">Square</option>
+              </select>
+            </div>
           </div>
 
-          <div class="control-row toggle-row">
-            <label>Invert</label>
-            <label class="toggle">
-              <input type="checkbox" id="invertToggle" onchange="convertImage()" />
-              <span class="toggle-slider"></span>
-            </label>
+          <!-- Style -->
+          <div class="control-section collapsible">
+            <div class="section-header" onclick="toggleSection(this)">
+              <span class="section-label">Style</span>
+              <span class="section-toggle">▼</span>
+            </div>
+            <div class="section-content">
+              <div class="control-row">
+                <label for="wallpaperStyle">Theme</label>
+                <select id="wallpaperStyle" onchange="updateWallpaperStyle(this.value)">
+                  <option value="wired" selected>Wired Mono</option>
+                  <option value="terminal">Terminal Green</option>
+                  <option value="blueprint">Blueprint</option>
+                  <option value="amber">Amber Print</option>
+                  <option value="ink">Ink Wash</option>
+                </select>
+              </div>
+              <div class="control-row">
+                <label for="textureSelect">Texture</label>
+                <select id="textureSelect" onchange="updateTexture(this.value)">
+                  <option value="paper" selected>Paper Grain</option>
+                  <option value="grid">Draft Grid</option>
+                  <option value="clean">Clean</option>
+                  <option value="film">Film Dust</option>
+                </select>
+              </div>
+              <div class="control-row">
+                <label for="imgColor">Color</label>
+                <div class="color-palette" id="imgColorPalette">
+                  <button class="color-swatch" data-color="gradient-cyan" onclick="selectImgColor(this,'gradient-cyan')"></button>
+                  <button class="color-swatch" data-color="gradient-green" onclick="selectImgColor(this,'gradient-green')"></button>
+                  <button class="color-swatch active" data-color="solid-white" onclick="selectImgColor(this,'solid-white')"></button>
+                  <button class="color-swatch" data-color="rainbow" onclick="selectImgColor(this,'rainbow')"></button>
+                </div>
+              </div>
+              <div class="control-row">
+                <label>Charset</label>
+                <select id="imgCharset" onchange="convertImage()">
+                  <option value="detailed" selected>Detailed</option>
+                  <option value="standard">Standard</option>
+                  <option value="blocks">Blocks</option>
+                  <option value="minimal">Minimal</option>
+                  <option value="dots">Dots</option>
+                </select>
+              </div>
+            </div>
           </div>
 
-          <div class="control-row toggle-row">
-            <label>Color Mode</label>
-            <label class="toggle">
-              <input type="checkbox" id="colorModeToggle" onchange="convertImage()" />
-              <span class="toggle-slider"></span>
-            </label>
+          <!-- Art Type -->
+          <div class="control-section collapsible">
+            <div class="section-header" onclick="toggleSection(this)">
+              <span class="section-label">Art Type</span>
+              <span class="section-toggle">▼</span>
+            </div>
+            <div class="section-content">
+              <div class="control-row full-width">
+                <label for="artTypeSelect">Style</label>
+                <select id="artTypeSelect" onchange="updateArtType(this.value)">
+                  <optgroup label="Visual Art">
+                    <option value="abstract">Abstract Field</option>
+                    <option value="watercolor">Watercolor</option>
+                    <option value="cutpaper">Cut Paper</option>
+                    <option value="halftone">Halftone Dots</option>
+                    <option value="mosaic">Mosaic Tiles</option>
+                    <option value="contour">Contour Map</option>
+                    <option value="lowpoly">Low Poly</option>
+                    <option value="poster" selected>Poster Paint</option>
+                    <option value="neon">Neon Glow</option>
+                    <option value="blueprintArt">Blueprint Lines</option>
+                    <option value="inksketch">Ink Sketch</option>
+                    <option value="oilpaint">Oil Paint</option>
+                    <option value="stainedglass">Stained Glass</option>
+                    <option value="pixelart">Pixel Art</option>
+                    <option value="duotone">Duotone</option>
+                    <option value="risograph">Risograph</option>
+                    <option value="pencil">Pencil Drawing</option>
+                  </optgroup>
+                  <optgroup label="Text Art">
+                    <option value="ascii">ASCII Sketch</option>
+                    <option value="braille">Braille Detail</option>
+                    <option value="blocks">Block Poster</option>
+                    <option value="dots">Dot Matrix</option>
+                    <option value="line">Line Etch</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="control-row">
+                <label for="movementSelect">Movement</label>
+                <select id="movementSelect" onchange="updateMovement(this.value)">
+                  <option value="none" selected>None</option>
+                  <option value="impressionism">Impressionism</option>
+                  <option value="cubism">Cubism</option>
+                  <option value="bauhaus">Bauhaus</option>
+                  <option value="pop">Pop Art</option>
+                  <option value="surrealism">Surrealism</option>
+                  <option value="opart">Op Art</option>
+                  <option value="ukiyoe">Ukiyo-e</option>
+                  <option value="artdeco">Art Deco</option>
+                  <option value="brutalism">Brutalism</option>
+                  <option value="glitch">Glitch Art</option>
+                </select>
+              </div>
+              <div class="control-row">
+                <label for="funkySelect">Funky</label>
+                <select id="funkySelect" onchange="updateFunkyMode(this.value)">
+                  <option value="none" selected>None</option>
+                  <option value="vhs">VHS</option>
+                  <option value="acid">Acid Poster</option>
+                  <option value="vaporwave">Vaporwave</option>
+                  <option value="comic">Comic Book</option>
+                  <option value="chrome">Y2K Chrome</option>
+                  <option value="cyberpunk">Cyberpunk</option>
+                </select>
+              </div>
+              <div class="control-row">
+                <label for="chaosRange">Chaos <span id="chaosVal">0</span></label>
+                <input type="range" id="chaosRange" min="0" max="100" step="1" value="0" oninput="updateChaos(this.value)" />
+              </div>
+            </div>
           </div>
 
-          <div class="control-row toggle-row">
-            <label>Safe Zones</label>
-            <label class="toggle">
-              <input type="checkbox" id="safeZoneToggle" onchange="toggleSafeZones()" />
-              <span class="toggle-slider"></span>
-            </label>
+          <!-- Adjust -->
+          <div class="control-section collapsible">
+            <div class="section-header" onclick="toggleSection(this)">
+              <span class="section-label">Adjust</span>
+              <span class="section-toggle">▼</span>
+            </div>
+            <div class="section-content">
+              <div class="control-row">
+                <label for="imgWidth">Detail <span id="imgWidthVal">170</span></label>
+                <input type="range" id="imgWidth" min="80" max="260" step="5" value="170" oninput="updateImgWidth(this.value)" />
+              </div>
+              <div class="control-row">
+                <label for="imgContrast">Contrast <span id="imgContrastVal">1.6</span></label>
+                <input type="range" id="imgContrast" min="0.6" max="3.0" step="0.1" value="1.6" oninput="updateImgContrast(this.value)" />
+              </div>
+              <div class="control-row">
+                <label for="saturationRange">Saturate <span id="saturationVal">1.0</span></label>
+                <input type="range" id="saturationRange" min="0" max="2" step="0.1" value="1" oninput="updateSaturation(this.value)" />
+              </div>
+              <div class="control-row">
+                <label for="warmthRange">Warmth <span id="warmthVal">0</span></label>
+                <input type="range" id="warmthRange" min="-50" max="50" step="1" value="0" oninput="updateWarmth(this.value)" />
+              </div>
+              <div class="control-row">
+                <label for="edgeBoost">Edges <span id="edgeBoostVal">1.2</span></label>
+                <input type="range" id="edgeBoost" min="0" max="3" step="0.1" value="1.2" oninput="updateEdgeBoost(this.value)" />
+              </div>
+              <div class="control-row">
+                <label for="marginRange">Margin <span id="marginVal">4</span>%</label>
+                <input type="range" id="marginRange" min="0" max="14" step="1" value="4" oninput="updateMargin(this.value)" />
+              </div>
+            </div>
           </div>
 
-          <div class="control-row toggle-row">
-            <label>Live Preview</label>
-            <label class="toggle">
-              <input type="checkbox" id="livePreviewToggle" onchange="toggleLivePreview()" />
-              <span class="toggle-slider"></span>
-            </label>
+          <!-- Transform -->
+          <div class="control-section collapsible">
+            <div class="section-header" onclick="toggleSection(this)">
+              <span class="section-label">Transform</span>
+              <span class="section-toggle">▼</span>
+            </div>
+            <div class="section-content">
+              <div class="control-row">
+                <label for="compositionSelect">Frame</label>
+                <select id="compositionSelect" onchange="updateComposition(this.value)">
+                  <option value="center" selected>Center Crop</option>
+                  <option value="left">Left Focus</option>
+                  <option value="right">Right Focus</option>
+                  <option value="top">Top Focus</option>
+                  <option value="bottom">Bottom Focus</option>
+                  <option value="fit">Fit Full Image</option>
+                </select>
+              </div>
+              <div class="control-row">
+                <label for="zoomRange">Zoom <span id="zoomVal">1.0</span>×</label>
+                <input type="range" id="zoomRange" min="1" max="3" step="0.1" value="1" oninput="updateZoom(this.value)" />
+              </div>
+              <div class="control-row">
+                <label for="panXRange">Pan X <span id="panXVal">0</span></label>
+                <input type="range" id="panXRange" min="-100" max="100" step="1" value="0" oninput="updatePanX(this.value)" />
+              </div>
+              <div class="control-row">
+                <label for="panYRange">Pan Y <span id="panYVal">0</span></label>
+                <input type="range" id="panYRange" min="-100" max="100" step="1" value="0" oninput="updatePanY(this.value)" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Toggles -->
+          <div class="control-section collapsible">
+            <div class="section-header" onclick="toggleSection(this)">
+              <span class="section-label">Options</span>
+              <span class="section-toggle">▼</span>
+            </div>
+            <div class="section-content toggles-grid">
+              <div class="control-row toggle-row">
+                <label>Auto Dark</label>
+                <label class="toggle">
+                  <input type="checkbox" id="autoDarkToggle" checked onchange="convertImage()" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="control-row toggle-row">
+                <label>Invert</label>
+                <label class="toggle">
+                  <input type="checkbox" id="invertToggle" onchange="convertImage()" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="control-row toggle-row">
+                <label>Color Mode</label>
+                <label class="toggle">
+                  <input type="checkbox" id="colorModeToggle" onchange="convertImage()" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="control-row toggle-row">
+                <label>Safe Zones</label>
+                <label class="toggle">
+                  <input type="checkbox" id="safeZoneToggle" onchange="toggleSafeZones()" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="control-row toggle-row">
+                <label>Live Preview</label>
+                <label class="toggle">
+                  <input type="checkbox" id="livePreviewToggle" onchange="toggleLivePreview()" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
           </div>
 
           <div class="action-stack">
@@ -441,6 +487,7 @@
           <div class="output-toolbar">
             <span class="output-label">Preview</span>
             <div class="toolbar-actions">
+              <button class="btn-sm" id="originalBtn" onclick="showOriginalPreview(state.image.currentImage)">Original</button>
               <button class="btn-sm" onclick="copyImgOutput()">⎘ Copy</button>
               <button class="btn-sm" onclick="downloadImgOutput()">↓ PNG</button>
             </div>
@@ -449,6 +496,15 @@
             <div class="upload-placeholder" id="uploadPlaceholder">
               <div style="font-size:4rem;margin-bottom:1rem">🎨</div>
               <p>Upload an image to generate ASCII wallpaper</p>
+            </div>
+            <div class="loading-overlay" id="imgLoadingOverlay" style="display:none">
+              <div class="loading-spinner"></div>
+              <span class="loading-text">Processing...</span>
+            </div>
+            <div class="error-overlay" id="imgErrorOverlay" style="display:none">
+              <span class="error-icon">⚠️</span>
+              <span class="error-message" id="imgErrorMessage">Failed to load image</span>
+              <button class="error-retry" onclick="retryImageLoad()">Retry</button>
             </div>
             <canvas class="wallpaper-canvas" id="wallpaperCanvas" style="display:none"></canvas>
             <div class="safe-zone-overlay" id="safeZoneOverlay" style="display:none"></div>
@@ -464,8 +520,8 @@
     </section>
   </main>
 
-  <footer class="site-footer">
-    <span>empty corpo@2026</span>
+  <footer class="site-footer" data-brackets="">
+    <span>EMPTY WALLS @2026 - powered by empty corporation</span>
   </footer>
 
   <!-- Toast -->
