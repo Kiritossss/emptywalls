@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Empty Wall</title>
-  <meta name="description" content="Turn images into high-resolution ASCII wallpapers for desktop, phone, tablet, and square formats." />
+  <meta name="description"
+    content="Turn images into high-resolution ASCII wallpapers for desktop, phone, tablet, and square formats." />
   <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
   <meta property="og:title" content="Empty Wall - ASCII Wallpaper Designer" />
   <meta property="og:description" content="Turn images into high-resolution ASCII wallpapers" />
@@ -12,9 +14,12 @@
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <!-- Background Particles -->
   <div class="bg-particles" id="bgParticles"></div>
@@ -32,6 +37,9 @@
         </button>
         <button class="nav-tab" id="tabTextBtn" onclick="switchTab('text')">
           <span class="tab-icon">▦</span> QR & Text
+        </button>
+        <button class="nav-tab" id="tabExploreBtn" onclick="switchTab('explore'); loadExploreFeed()">
+          <span class="tab-icon">✧</span> Explore
         </button>
       </nav>
       <div class="header-actions">
@@ -51,13 +59,8 @@
           <div class="section-label">Input</div>
           <div class="input-group">
             <label for="textInput">Scan Link</label>
-            <textarea
-              id="textInput"
-              class="text-input"
-              placeholder="https://your-site.com"
-              rows="2"
-              oninput="generateAscii()"
-            >https://example.com</textarea>
+            <textarea id="textInput" class="text-input" placeholder="https://your-site.com" rows="2"
+              oninput="generateAscii()">https://example.com</textarea>
             <span class="char-count"><span id="charCount">6</span></span>
           </div>
 
@@ -83,13 +86,15 @@
 
           <div class="section-label" style="margin-top:1.5rem">QR</div>
 
-          <div class="qr-image-picker qr-image-picker-primary" onclick="document.getElementById('qrImageInput').click()">
+          <div class="qr-image-picker qr-image-picker-primary"
+            onclick="document.getElementById('qrImageInput').click()">
             <div>
               <strong id="qrImageName">Choose QR image</strong>
               <span>This image shapes the QR artwork</span>
             </div>
             <button class="btn-sm" type="button">Pick</button>
-            <input type="file" id="qrImageInput" accept="image/*" style="display:none" onchange="handleQrImageUpload(event)" />
+            <input type="file" id="qrImageInput" accept="image/*" style="display:none"
+              onchange="handleQrImageUpload(event)" />
           </div>
 
           <div class="control-row">
@@ -116,7 +121,8 @@
 
           <div class="control-row">
             <label for="quietRange">Quiet <span id="quietVal">4</span></label>
-            <input type="range" id="quietRange" min="1" max="6" step="1" value="4" oninput="updateQuietZone(this.value)" />
+            <input type="range" id="quietRange" min="1" max="6" step="1" value="4"
+              oninput="updateQuietZone(this.value)" />
           </div>
 
           <div class="control-row toggle-row">
@@ -130,25 +136,34 @@
           <div class="control-row">
             <label for="colorScheme">Color</label>
             <div class="color-palette" id="colorPalette">
-              <button class="color-swatch active" data-color="gradient-cyan" onclick="selectColor(this,'gradient-cyan')" title="Cyan"></button>
-              <button class="color-swatch" data-color="gradient-purple" onclick="selectColor(this,'gradient-purple')" title="Purple"></button>
-              <button class="color-swatch" data-color="gradient-fire" onclick="selectColor(this,'gradient-fire')" title="Fire"></button>
-              <button class="color-swatch" data-color="gradient-green" onclick="selectColor(this,'gradient-green')" title="Matrix"></button>
-              <button class="color-swatch" data-color="solid-white" onclick="selectColor(this,'solid-white')" title="White"></button>
-              <button class="color-swatch" data-color="solid-gold" onclick="selectColor(this,'solid-gold')" title="Gold"></button>
-              <button class="color-swatch" data-color="rainbow" onclick="selectColor(this,'rainbow')" title="Rainbow"></button>
+              <button class="color-swatch active" data-color="gradient-cyan" onclick="selectColor(this,'gradient-cyan')"
+                title="Cyan"></button>
+              <button class="color-swatch" data-color="gradient-purple" onclick="selectColor(this,'gradient-purple')"
+                title="Purple"></button>
+              <button class="color-swatch" data-color="gradient-fire" onclick="selectColor(this,'gradient-fire')"
+                title="Fire"></button>
+              <button class="color-swatch" data-color="gradient-green" onclick="selectColor(this,'gradient-green')"
+                title="Matrix"></button>
+              <button class="color-swatch" data-color="solid-white" onclick="selectColor(this,'solid-white')"
+                title="White"></button>
+              <button class="color-swatch" data-color="solid-gold" onclick="selectColor(this,'solid-gold')"
+                title="Gold"></button>
+              <button class="color-swatch" data-color="rainbow" onclick="selectColor(this,'rainbow')"
+                title="Rainbow"></button>
             </div>
           </div>
 
           <div class="control-row">
             <label for="sizeRange">Size <span id="sizeVal">1.0</span>×</label>
-            <input type="range" id="sizeRange" min="0.4" max="2.0" step="0.1" value="1.0" oninput="updateSize(this.value)" />
+            <input type="range" id="sizeRange" min="0.4" max="2.0" step="0.1" value="1.0"
+              oninput="updateSize(this.value)" />
           </div>
 
           <div class="control-row">
             <label>Charset</label>
             <div class="charset-group">
-              <button class="charset-btn active" id="cs-standard" onclick="selectCharset('standard', this)">Standard</button>
+              <button class="charset-btn active" id="cs-standard"
+                onclick="selectCharset('standard', this)">Standard</button>
               <button class="charset-btn" id="cs-blocks" onclick="selectCharset('blocks', this)">Blocks</button>
               <button class="charset-btn" id="cs-minimal" onclick="selectCharset('minimal', this)">Minimal</button>
             </div>
@@ -216,10 +231,12 @@
           <!-- Upload -->
           <div class="control-section">
             <div class="section-label">Image</div>
-            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()"
+              ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
               <div class="upload-icon">🖼️</div>
-              <div class="upload-text">Drop image here<br/><small>click, drop, or paste screenshot</small></div>
-              <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)" />
+              <div class="upload-text">Drop image here<br /><small>click, drop, or paste screenshot</small></div>
+              <input type="file" id="imageInput" accept="image/*" style="display:none"
+                onchange="handleImageUpload(event)" />
             </div>
           </div>
 
@@ -269,9 +286,12 @@
               <div class="control-row">
                 <label for="imgColor">Color</label>
                 <div class="color-palette" id="imgColorPalette">
-                  <button class="color-swatch" data-color="gradient-cyan" onclick="selectImgColor(this,'gradient-cyan')"></button>
-                  <button class="color-swatch" data-color="gradient-green" onclick="selectImgColor(this,'gradient-green')"></button>
-                  <button class="color-swatch active" data-color="solid-white" onclick="selectImgColor(this,'solid-white')"></button>
+                  <button class="color-swatch" data-color="gradient-cyan"
+                    onclick="selectImgColor(this,'gradient-cyan')"></button>
+                  <button class="color-swatch" data-color="gradient-green"
+                    onclick="selectImgColor(this,'gradient-green')"></button>
+                  <button class="color-swatch active" data-color="solid-white"
+                    onclick="selectImgColor(this,'solid-white')"></button>
                   <button class="color-swatch" data-color="rainbow" onclick="selectImgColor(this,'rainbow')"></button>
                 </div>
               </div>
@@ -316,6 +336,12 @@
                     <option value="duotone">Duotone</option>
                     <option value="risograph">Risograph</option>
                     <option value="pencil">Pencil Drawing</option>
+                    <option value="crosshatch">Crosshatch Pen</option>
+                    <option value="dither">Retro Dither</option>
+                    <option value="popart">Warhol Pop Art</option>
+                    <option value="pointillism">Pointillism</option>
+                    <option value="engraving">Engraving</option>
+                    <option value="cybermatrix">Cyber Matrix</option>
                   </optgroup>
                   <optgroup label="Text Art">
                     <option value="ascii">ASCII Sketch</option>
@@ -356,7 +382,8 @@
               </div>
               <div class="control-row">
                 <label for="chaosRange">Chaos <span id="chaosVal">0</span></label>
-                <input type="range" id="chaosRange" min="0" max="100" step="1" value="0" oninput="updateChaos(this.value)" />
+                <input type="range" id="chaosRange" min="0" max="100" step="1" value="0"
+                  oninput="updateChaos(this.value)" />
               </div>
             </div>
           </div>
@@ -370,27 +397,33 @@
             <div class="section-content">
               <div class="control-row">
                 <label for="imgWidth">Detail <span id="imgWidthVal">170</span></label>
-                <input type="range" id="imgWidth" min="80" max="260" step="5" value="170" oninput="updateImgWidth(this.value)" />
+                <input type="range" id="imgWidth" min="80" max="260" step="5" value="170"
+                  oninput="updateImgWidth(this.value)" />
               </div>
               <div class="control-row">
                 <label for="imgContrast">Contrast <span id="imgContrastVal">1.6</span></label>
-                <input type="range" id="imgContrast" min="0.6" max="3.0" step="0.1" value="1.6" oninput="updateImgContrast(this.value)" />
+                <input type="range" id="imgContrast" min="0.6" max="3.0" step="0.1" value="1.6"
+                  oninput="updateImgContrast(this.value)" />
               </div>
               <div class="control-row">
                 <label for="saturationRange">Saturate <span id="saturationVal">1.0</span></label>
-                <input type="range" id="saturationRange" min="0" max="2" step="0.1" value="1" oninput="updateSaturation(this.value)" />
+                <input type="range" id="saturationRange" min="0" max="2" step="0.1" value="1"
+                  oninput="updateSaturation(this.value)" />
               </div>
               <div class="control-row">
                 <label for="warmthRange">Warmth <span id="warmthVal">0</span></label>
-                <input type="range" id="warmthRange" min="-50" max="50" step="1" value="0" oninput="updateWarmth(this.value)" />
+                <input type="range" id="warmthRange" min="-50" max="50" step="1" value="0"
+                  oninput="updateWarmth(this.value)" />
               </div>
               <div class="control-row">
                 <label for="edgeBoost">Edges <span id="edgeBoostVal">1.2</span></label>
-                <input type="range" id="edgeBoost" min="0" max="3" step="0.1" value="1.2" oninput="updateEdgeBoost(this.value)" />
+                <input type="range" id="edgeBoost" min="0" max="3" step="0.1" value="1.2"
+                  oninput="updateEdgeBoost(this.value)" />
               </div>
               <div class="control-row">
                 <label for="marginRange">Margin <span id="marginVal">4</span>%</label>
-                <input type="range" id="marginRange" min="0" max="14" step="1" value="4" oninput="updateMargin(this.value)" />
+                <input type="range" id="marginRange" min="0" max="14" step="1" value="4"
+                  oninput="updateMargin(this.value)" />
               </div>
             </div>
           </div>
@@ -415,15 +448,18 @@
               </div>
               <div class="control-row">
                 <label for="zoomRange">Zoom <span id="zoomVal">1.0</span>×</label>
-                <input type="range" id="zoomRange" min="1" max="3" step="0.1" value="1" oninput="updateZoom(this.value)" />
+                <input type="range" id="zoomRange" min="1" max="3" step="0.1" value="1"
+                  oninput="updateZoom(this.value)" />
               </div>
               <div class="control-row">
                 <label for="panXRange">Pan X <span id="panXVal">0</span></label>
-                <input type="range" id="panXRange" min="-100" max="100" step="1" value="0" oninput="updatePanX(this.value)" />
+                <input type="range" id="panXRange" min="-100" max="100" step="1" value="0"
+                  oninput="updatePanX(this.value)" />
               </div>
               <div class="control-row">
                 <label for="panYRange">Pan Y <span id="panYVal">0</span></label>
-                <input type="range" id="panYRange" min="-100" max="100" step="1" value="0" oninput="updatePanY(this.value)" />
+                <input type="range" id="panYRange" min="-100" max="100" step="1" value="0"
+                  oninput="updatePanY(this.value)" />
               </div>
             </div>
           </div>
@@ -487,7 +523,8 @@
           <div class="output-toolbar">
             <span class="output-label">Preview</span>
             <div class="toolbar-actions">
-              <button class="btn-sm" id="originalBtn" onclick="showOriginalPreview(state.image.currentImage)">Original</button>
+              <button class="btn-sm" id="originalBtn"
+                onclick="showOriginalPreview(state.image.currentImage)">Original</button>
               <button class="btn-sm" onclick="copyImgOutput()">⎘ Copy</button>
               <button class="btn-sm" onclick="downloadImgOutput()">↓ PNG</button>
             </div>
@@ -508,7 +545,8 @@
             </div>
             <canvas class="wallpaper-canvas" id="wallpaperCanvas" style="display:none"></canvas>
             <div class="safe-zone-overlay" id="safeZoneOverlay" style="display:none"></div>
-            <pre class="ascii-output img-ascii" id="imgAsciiOutput" style="display:none;font-size:5px;line-height:1"></pre>
+            <pre class="ascii-output img-ascii" id="imgAsciiOutput"
+              style="display:none;font-size:5px;line-height:1"></pre>
           </div>
           <div class="style-gallery" id="styleGallery"></div>
           <div class="output-meta">
@@ -516,6 +554,32 @@
             <span id="imgMetaCols">— cols</span>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ── EXPLORE TAB (PUBLIC GALLERY) ── -->
+    <section class="tab-panel" id="panelExplore">
+      <div class="controls-panel glass" style="margin-bottom: 2rem; display: flex; gap: 1rem; align-items: center;">
+        <input type="text" id="searchInput" class="text-input" placeholder="Search by name or style (e.g., 'Cyberpunk')"
+          onkeyup="handleSearch(event)" style="flex: 1;" />
+
+        <select id="sortSelect" class="text-input" style="width: auto;" onchange="loadExploreFeed()">
+          <option value="newest">Newest First</option>
+          <option value="popular">Most Popular</option>
+          <option value="algorithm">Curated</option>
+        </select>
+
+        <button class="btn-sm" onclick="loadExploreFeed()">Search</button>
+      </div>
+
+      <div class="output-container glass">
+        <div class="output-toolbar">
+          <span class="output-label">Public Community Gallery</span>
+        </div>
+
+        <!-- The gallery feed will be injected here via JavaScript -->
+        <div class="style-gallery" id="publicFeedGallery"
+          style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));"></div>
       </div>
     </section>
   </main>
@@ -529,7 +593,10 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="fonts.js"></script>
+  <script src="api.js"></script>
   <script src="app.js"></script>
 </body>
+
 </html>

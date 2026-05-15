@@ -45,12 +45,47 @@ const state = {
   }
 };
 
+// Background processing worker
+let imageWorker = null;
+
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
   initParticles();
   initPasteUpload();
+  syncWallpaperControls(); // Sync UI with potentially loaded settings
   generateAscii(); // Initial render for text
 });
+
+function saveSettings() {
+  // Clone state but omit image objects to prevent localStorage quota errors
+  const stateToSave = {
+    theme: state.theme,
+    text: state.text,
+    qr: { ...state.qr, image: null },
+    image: { ...state.image, currentImage: null }
+  };
+  localStorage.setItem('emptyWallSettings', JSON.stringify(stateToSave));
+}
+
+function loadSettings() {
+  const saved = localStorage.getItem('emptyWallSettings');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      // Merge saved state into current state deeply
+      Object.assign(state.text, parsed.text);
+      Object.assign(state.qr, parsed.qr);
+      Object.assign(state.image, parsed.image);
+
+      if (parsed.theme && parsed.theme !== state.theme) {
+        toggleTheme(); // Apply saved theme
+      }
+    } catch (e) {
+      console.error('Failed to parse saved settings', e);
+    }
+  }
+}
 
 // --- Theme ---
 function toggleTheme() {
@@ -65,6 +100,7 @@ function toggleTheme() {
     delete body.dataset.theme;
     icon.textContent = '🌙';
   }
+  saveSettings();
 }
 
 // --- Tabs ---
@@ -73,6 +109,8 @@ function switchTab(tabId) {
   document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
   if (tabId === 'text') {
     document.getElementById('tabTextBtn').classList.add('active');
+  } else if (tabId === 'explore') {
+    document.getElementById('tabExploreBtn').classList.add('active');
   } else {
     document.getElementById('tabImageBtn').classList.add('active');
   }
@@ -81,6 +119,8 @@ function switchTab(tabId) {
   document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
   if (tabId === 'text') {
     document.getElementById('panelText').classList.add('active');
+  } else if (tabId === 'explore') {
+    document.getElementById('panelExplore').classList.add('active');
   } else {
     document.getElementById('panelImage').classList.add('active');
   }
@@ -102,12 +142,12 @@ function generateAscii() {
   document.getElementById('charCount').textContent = text.length;
 
   let asciiText = '';
-  
+
   if (font === 'qrcode') {
     asciiText = renderQr(text);
   } else {
     asciiText = renderFont(text, font); // from fonts.js
-    
+
     // Apply charset mapping if not standard
     if (state.text.charset !== 'standard') {
       const chars = CHARSETS[state.text.charset].trim();
@@ -153,6 +193,8 @@ function generateAscii() {
   document.getElementById('metaLines').textContent = `${lines.length} lines`;
   document.getElementById('metaCols').textContent = `${Math.max(...lines.map(l => l.length))} cols`;
   document.getElementById('metaChars').textContent = `${asciiText.length} chars`;
+
+  saveSettings();
 }
 
 function renderQr(text) {
@@ -425,6 +467,7 @@ function showOriginalPreview(img) {
 function updateImgWidth(val) {
   document.getElementById('imgWidthVal').textContent = val;
   state.image.width = parseInt(val);
+  saveSettings();
   if (state.image.currentImage) {
     convertImage();
   }
@@ -434,6 +477,7 @@ function updateDevice(value) {
   const [width, height] = value.split('x').map(Number);
   state.image.deviceWidth = width;
   state.image.deviceHeight = height;
+  saveSettings();
   if (state.image.currentImage) {
     convertImage();
   }
@@ -442,6 +486,7 @@ function updateDevice(value) {
 function updateImgContrast(val) {
   state.image.contrast = parseFloat(val);
   document.getElementById('imgContrastVal').textContent = state.image.contrast.toFixed(1);
+  saveSettings();
   if (state.image.currentImage) {
     convertImage();
   }
@@ -450,18 +495,21 @@ function updateImgContrast(val) {
 function updateSaturation(value) {
   state.image.saturation = parseFloat(value);
   document.getElementById('saturationVal').textContent = state.image.saturation.toFixed(1);
+  saveSettings();
   if (state.image.currentImage) convertImage();
 }
 
 function updateWarmth(value) {
   state.image.warmth = parseInt(value, 10);
   document.getElementById('warmthVal').textContent = state.image.warmth;
+  saveSettings();
   if (state.image.currentImage) convertImage();
 }
 
 function updateEdgeBoost(val) {
   state.image.edgeBoost = parseFloat(val);
   document.getElementById('edgeBoostVal').textContent = state.image.edgeBoost.toFixed(1);
+  saveSettings();
   if (state.image.currentImage) {
     convertImage();
   }
@@ -469,6 +517,7 @@ function updateEdgeBoost(val) {
 
 function updateWallpaperStyle(value) {
   state.image.wallpaperStyle = value;
+  saveSettings();
   if (state.image.currentImage) {
     convertImage();
   }
@@ -476,6 +525,7 @@ function updateWallpaperStyle(value) {
 
 function updateArtType(value) {
   state.image.artType = value;
+  saveSettings();
   if (state.image.currentImage) {
     convertImage();
   }
@@ -484,6 +534,7 @@ function updateArtType(value) {
 function updateMovement(value) {
   state.image.movement = value;
   applyMovementPreset(value);
+  saveSettings();
   if (state.image.currentImage) {
     convertImage();
   }
@@ -492,12 +543,14 @@ function updateMovement(value) {
 function updateFunkyMode(value) {
   state.image.funkyMode = value;
   applyFunkyPreset(value);
+  saveSettings();
   if (state.image.currentImage) convertImage();
 }
 
 function updateChaos(value) {
   state.image.chaos = parseInt(value, 10);
   document.getElementById('chaosVal').textContent = state.image.chaos;
+  saveSettings();
   if (state.image.currentImage) convertImage();
 }
 
@@ -522,7 +575,7 @@ function applyMovementPreset(value) {
     impressionism: { artType: 'watercolor', wallpaperStyle: 'ink', contrast: 1.25, edgeBoost: 0.7, texture: 'paper' },
     cubism: { artType: 'lowpoly', wallpaperStyle: 'amber', contrast: 2.1, edgeBoost: 2.4, texture: 'clean' },
     bauhaus: { artType: 'blocks', wallpaperStyle: 'wired', contrast: 2.4, edgeBoost: 1.5, texture: 'grid' },
-    pop: { artType: 'halftone', wallpaperStyle: 'amber', contrast: 2.6, edgeBoost: 1.2, texture: 'clean' },
+    pop: { artType: 'popart', wallpaperStyle: 'amber', contrast: 2.6, edgeBoost: 1.2, texture: 'clean' },
     surrealism: { artType: 'abstract', wallpaperStyle: 'ink', contrast: 1.45, edgeBoost: 2.2, texture: 'film' },
     opart: { artType: 'contour', wallpaperStyle: 'wired', contrast: 2.8, edgeBoost: 3.0, texture: 'clean' },
     ukiyoe: { artType: 'line', wallpaperStyle: 'ink', contrast: 1.7, edgeBoost: 2.6, texture: 'paper' },
@@ -550,6 +603,7 @@ function applyMovementPreset(value) {
 
 function updateComposition(value) {
   state.image.composition = value;
+  saveSettings();
   if (state.image.currentImage) {
     convertImage();
   }
@@ -557,6 +611,7 @@ function updateComposition(value) {
 
 function updateTexture(value) {
   state.image.texture = value;
+  saveSettings();
   if (state.image.currentImage) {
     convertImage();
   }
@@ -565,6 +620,7 @@ function updateTexture(value) {
 function updateMargin(value) {
   state.image.margin = parseInt(value, 10);
   document.getElementById('marginVal').textContent = state.image.margin;
+  saveSettings();
   if (state.image.currentImage) {
     convertImage();
   }
@@ -573,18 +629,21 @@ function updateMargin(value) {
 function updateZoom(value) {
   state.image.zoom = parseFloat(value);
   document.getElementById('zoomVal').textContent = state.image.zoom.toFixed(1);
+  saveSettings();
   if (state.image.currentImage) convertImage();
 }
 
 function updatePanX(value) {
   state.image.panX = parseInt(value, 10);
   document.getElementById('panXVal').textContent = state.image.panX;
+  saveSettings();
   if (state.image.currentImage) convertImage();
 }
 
 function updatePanY(value) {
   state.image.panY = parseInt(value, 10);
   document.getElementById('panYVal').textContent = state.image.panY;
+  saveSettings();
   if (state.image.currentImage) convertImage();
 }
 
@@ -616,106 +675,72 @@ function convertImage() {
     const target = getContainTargetRect(img, width, height);
     ctx.drawImage(img, 0, 0, img.width, img.height, target.x, target.y, target.width, target.height);
   } else {
-  ctx.drawImage(img, source.x, source.y, source.width, source.height, 0, 0, width, height);
+    ctx.drawImage(img, source.x, source.y, source.width, source.height, 0, 0, width, height);
   }
   const imgData = ctx.getImageData(0, 0, width, height);
-  applyColorGrade(imgData.data);
-  ctx.putImageData(imgData, 0, 0);
-  const data = imgData.data;
 
-  const charsetName = document.getElementById('imgCharset').value;
-  const charset = getArtCharset(state.image.artType, charsetName);
-  const manualInvert = document.getElementById('invertToggle').checked;
-  const autoDark = document.getElementById('autoDarkToggle').checked;
-  const colorMode = document.getElementById('colorModeToggle').checked;
-  const contrast = parseFloat(document.getElementById('imgContrast').value);
-  const avgBrightness = getAverageBrightness(data);
-  const invert = manualInvert || (autoDark && avgBrightness < 120);
+  // Terminate running worker if a new job starts (Debouncing rapid slider changes)
+  if (imageWorker) imageWorker.terminate();
+  imageWorker = new Worker('worker.js');
 
-  let asciiArt = '';
-  let coloredHtml = '';
-  const brightnessMap = buildBrightnessMap(data, width, height);
-  const edgeMap = buildEdgeMap(brightnessMap, width, height);
+  // Force UI to show loading immediately
+  showImgLoading(true);
 
-  if (isGraphicArtType(state.image.artType)) {
-    renderGraphicWallpaperCanvas({
-      data,
-      cols: width,
-      rows: height,
-      brightnessMap,
-      edgeMap,
-    });
-    document.getElementById('imgAsciiOutput').textContent = '';
-    document.getElementById('imgMetaLines').textContent = `${state.image.artType} render`;
+  imageWorker.onmessage = function (e) {
+    const { processedData, brightnessMap, magnitude, direction, asciiArt, coloredHtml, options } = e.data;
+
+    // Put the processed pixels back (applies saturation/warmth visually to canvas)
+    const newImgData = new ImageData(new Uint8ClampedArray(processedData), width, height);
+    ctx.putImageData(newImgData, 0, 0);
+
+    const bMap = new Float32Array(brightnessMap);
+    const edgeMap = {
+      magnitude: new Float32Array(magnitude),
+      direction: new Float32Array(direction)
+    };
+
+    if (options.isGraphic) {
+      renderGraphicWallpaperCanvas({ data: newImgData.data, cols: width, rows: height, brightnessMap: bMap, edgeMap });
+      document.getElementById('imgAsciiOutput').textContent = '';
+      document.getElementById('imgMetaLines').textContent = `${options.artType} render`;
+    } else {
+      const outputEl = document.getElementById('imgAsciiOutput');
+      if (options.colorMode) {
+        outputEl.innerHTML = coloredHtml;
+        outputEl.className = 'ascii-output img-ascii';
+      } else {
+        outputEl.textContent = asciiArt;
+        outputEl.className = 'ascii-output img-ascii ' + state.image.color;
+      }
+      renderWallpaperCanvas(asciiArt, width, height);
+      document.getElementById('imgMetaLines').textContent = `${height} lines`;
+    }
+
     document.getElementById('imgMetaCols').textContent = `${state.image.deviceWidth}×${state.image.deviceHeight}`;
     updateSafeZoneOverlay();
-    return;
-  }
+    showImgLoading(false);
+  };
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const offset = (y * width + x) * 4;
-      const r = data[offset];
-      const g = data[offset + 1];
-      const b = data[offset + 2];
-      const a = data[offset + 3];
+  const workerOptions = {
+    artType: state.image.artType,
+    charsetName: document.getElementById('imgCharset').value,
+    manualInvert: document.getElementById('invertToggle').checked,
+    autoDark: document.getElementById('autoDarkToggle').checked,
+    colorMode: document.getElementById('colorModeToggle').checked,
+    contrast: parseFloat(document.getElementById('imgContrast').value),
+    saturation: state.image.saturation,
+    warmth: state.image.warmth,
+    edgeBoost: state.image.edgeBoost,
+    isGraphic: isGraphicArtType(state.image.artType)
+  };
 
-      if (a === 0) {
-        asciiArt += ' ';
-        coloredHtml += ' ';
-        continue;
-      }
-
-      const brightness = adjustContrast(brightnessMap[y * width + x], contrast);
-      const edge = edgeMap.magnitude[y * width + x] * state.image.edgeBoost;
-      
-      const char = getArtChar({
-        brightness,
-        edge,
-        direction: edgeMap.direction[y * width + x],
-        charset,
-        invert,
-      });
-      
-      if (char === ' ' || char === '') {
-          asciiArt += ' ';
-          coloredHtml += ' ';
-      } else if (char === '<') {
-          asciiArt += '<';
-          coloredHtml += colorMode ? `<span style="color:rgb(${r},${g},${b})">&lt;</span>` : '&lt;';
-      } else if (char === '>') {
-          asciiArt += '>';
-          coloredHtml += colorMode ? `<span style="color:rgb(${r},${g},${b})">&gt;</span>` : '&gt;';
-      } else {
-        asciiArt += char;
-        if (colorMode) {
-          coloredHtml += `<span style="color:rgb(${r},${g},${b})">${char}</span>`;
-        } else {
-          coloredHtml += char;
-        }
-      }
-    }
-    asciiArt += '\n';
-    coloredHtml += '\n';
-  }
-
-  const outputEl = document.getElementById('imgAsciiOutput');
-  
-  if (colorMode) {
-    outputEl.innerHTML = coloredHtml;
-    // Remove color class if color mode is on
-    outputEl.className = 'ascii-output img-ascii';
-  } else {
-    outputEl.textContent = asciiArt;
-    outputEl.className = 'ascii-output img-ascii ' + state.image.color;
-  }
-
-  renderWallpaperCanvas(asciiArt, width, height);
-
-  // Update meta
-  document.getElementById('imgMetaLines').textContent = `${height} lines`;
-  document.getElementById('imgMetaCols').textContent = `${state.image.deviceWidth}×${state.image.deviceHeight}`;
-  updateSafeZoneOverlay();
+  // Send data to background worker using zero-copy Transferable Objects for speed
+  imageWorker.postMessage({
+    data: imgData.data.buffer,
+    width,
+    height,
+    options: workerOptions
+  }, [imgData.data.buffer]);
 }
 
 function applyColorGrade(data) {
@@ -862,6 +887,12 @@ function isGraphicArtType(artType) {
     'duotone',
     'risograph',
     'pencil',
+    'crosshatch',
+    'dither',
+    'popart',
+    'pointillism',
+    'engraving',
+    'cybermatrix',
   ].includes(artType);
 }
 
@@ -981,6 +1012,18 @@ function renderGraphicWallpaperCanvas({ data, cols, rows, brightnessMap, edgeMap
     drawRisograph(ctx, data, brightnessMap, cols, rows, marginX, marginY, cellW, cellH);
   } else if (state.image.artType === 'pencil') {
     drawPencil(ctx, brightnessMap, edgeMap, cols, rows, marginX, marginY, cellW, cellH, palette);
+  } else if (state.image.artType === 'crosshatch') {
+    drawCrosshatch(ctx, brightnessMap, cols, rows, marginX, marginY, cellW, cellH, palette);
+  } else if (state.image.artType === 'dither') {
+    drawDither(ctx, data, cols, rows, marginX, marginY, cellW, cellH, palette);
+  } else if (state.image.artType === 'popart') {
+    drawPopArt(ctx, data, cols, rows, marginX, marginY, cellW, cellH);
+  } else if (state.image.artType === 'pointillism') {
+    drawPointillism(ctx, data, cols, rows, marginX, marginY, cellW, cellH);
+  } else if (state.image.artType === 'engraving') {
+    drawEngraving(ctx, brightnessMap, cols, rows, marginX, marginY, cellW, cellH, palette);
+  } else if (state.image.artType === 'cybermatrix') {
+    drawCyberMatrix(ctx, data, brightnessMap, cols, rows, marginX, marginY, cellW, cellH);
   }
 
   drawMovementOverlay(ctx, width, height, palette);
@@ -1337,6 +1380,145 @@ function drawPencil(ctx, brightnessMap, edgeMap, cols, rows, marginX, marginY, c
   ctx.globalAlpha = 1;
 }
 
+function drawCrosshatch(ctx, brightnessMap, cols, rows, marginX, marginY, cellW, cellH, palette) {
+  ctx.strokeStyle = palette.ink;
+  ctx.globalAlpha = 0.75;
+  const step = Math.max(3, Math.round(cols / 140));
+  ctx.lineWidth = Math.max(1, cellW * 0.5);
+
+  for (let y = 0; y < rows; y += step) {
+    for (let x = 0; x < cols; x += step) {
+      const brightness = brightnessMap[y * cols + x] || 255;
+      if (brightness > 240) continue;
+
+      const px = marginX + x * cellW;
+      const py = marginY + y * cellH;
+      const len = Math.min(cellW, cellH) * step * 0.75;
+
+      ctx.beginPath();
+      if (brightness < 200) {
+        ctx.moveTo(px - len, py - len);
+        ctx.lineTo(px + len, py + len);
+      }
+      if (brightness < 140) {
+        ctx.moveTo(px + len, py - len);
+        ctx.lineTo(px - len, py + len);
+      }
+      if (brightness < 90) {
+        ctx.moveTo(px, py - len);
+        ctx.lineTo(px, py + len);
+      }
+      if (brightness < 45) {
+        ctx.moveTo(px - len, py);
+        ctx.lineTo(px + len, py);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawDither(ctx, data, cols, rows, marginX, marginY, cellW, cellH, palette) {
+  const bayer = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  const tile = Math.max(2, Math.round(cols / 180));
+  for (let y = 0; y < rows; y += tile) {
+    for (let x = 0; x < cols; x += tile) {
+      const offset = (y * cols + x) * 4;
+      const brightness = data[offset + 3] === 0 ? 255 : 0.299 * data[offset] + 0.587 * data[offset + 1] + 0.114 * data[offset + 2];
+      const threshold = (bayer[(Math.floor(y / tile)) % 4][(Math.floor(x / tile)) % 4] / 16) * 255;
+
+      if (brightness < threshold) {
+        ctx.fillStyle = getPosterColor(data, x, y, cols, 4);
+        ctx.fillRect(marginX + x * cellW, marginY + y * cellH, cellW * tile + 0.5, cellH * tile + 0.5);
+      }
+    }
+  }
+}
+
+function drawPopArt(ctx, data, cols, rows, marginX, marginY, cellW, cellH) {
+  const tile = Math.max(4, Math.round(cols / 100));
+  const colors = ['#000000', '#D9005B', '#00D9C0', '#FFEA00', '#ffffff'];
+  for (let y = 0; y < rows; y += tile) {
+    for (let x = 0; x < cols; x += tile) {
+      const offset = (y * cols + x) * 4;
+      let colorIdx = 4;
+      if (data[offset + 3] > 0) {
+        const brightness = 0.299 * data[offset] + 0.587 * data[offset + 1] + 0.114 * data[offset + 2];
+        if (brightness < 45) colorIdx = 0;
+        else if (brightness < 105) colorIdx = 1;
+        else if (brightness < 165) colorIdx = 2;
+        else if (brightness < 225) colorIdx = 3;
+      }
+      ctx.fillStyle = colors[colorIdx];
+      ctx.fillRect(marginX + x * cellW, marginY + y * cellH, cellW * tile + 1, cellH * tile + 1);
+    }
+  }
+}
+
+function drawPointillism(ctx, data, cols, rows, marginX, marginY, cellW, cellH) {
+  const step = Math.max(3, Math.round(cols / 110));
+  for (let i = 0; i < 2; i++) { // Two passes for better density
+    for (let y = 0; y < rows; y += step) {
+      for (let x = 0; x < cols; x += step) {
+        const jitterX = (Math.random() - 0.5) * step;
+        const jitterY = (Math.random() - 0.5) * step;
+        const px = Math.min(cols - 1, Math.max(0, Math.floor(x + jitterX)));
+        const py = Math.min(rows - 1, Math.max(0, Math.floor(y + jitterY)));
+
+        const offset = (py * cols + px) * 4;
+        if (data[offset + 3] === 0) continue;
+
+        ctx.fillStyle = `rgba(${data[offset]}, ${data[offset + 1]}, ${data[offset + 2]}, 0.9)`;
+        const radius = (Math.random() * 0.6 + 0.3) * Math.min(cellW, cellH) * step;
+
+        ctx.beginPath();
+        ctx.arc(marginX + (x + jitterX) * cellW, marginY + (y + jitterY) * cellH, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+}
+
+function drawEngraving(ctx, brightnessMap, cols, rows, marginX, marginY, cellW, cellH, palette) {
+  ctx.fillStyle = palette.ink;
+  const stepY = Math.max(3, Math.round(rows / 110));
+  const stepX = Math.max(2, Math.round(cols / 200));
+
+  for (let y = 0; y < rows; y += stepY) {
+    for (let x = 0; x < cols; x += stepX) {
+      const brightness = brightnessMap[y * cols + x] || 255;
+      const darkness = 1 - (brightness / 255);
+      if (darkness < 0.08) continue;
+
+      const wave = Math.sin(x * 0.12 + y * 0.05) * stepY * 0.45 * darkness;
+      const h = Math.max(0.5, darkness * stepY * 0.85);
+
+      ctx.fillRect(marginX + x * cellW, marginY + y * cellH + wave - h / 2, cellW * stepX + 0.5, h);
+    }
+  }
+}
+
+function drawCyberMatrix(ctx, data, brightnessMap, cols, rows, marginX, marginY, cellW, cellH) {
+  const chars = '01ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ';
+  const step = Math.max(3, Math.round(cols / 120));
+  ctx.font = `bold ${Math.max(6, cellH * step * 1.2)}px "IBM Plex Mono", monospace`;
+  ctx.textBaseline = 'top';
+
+  for (let x = 0; x < cols; x += step) {
+    for (let y = 0; y < rows; y += step) {
+      const brightness = brightnessMap[y * cols + x] || 255;
+      if (brightness > 240) continue;
+
+      const offset = (y * cols + x) * 4;
+      const matrixG = Math.min(255, data[offset + 1] * 1.2 + 40); // Boost green
+
+      ctx.fillStyle = `rgba(${data[offset] * 0.4}, ${matrixG}, ${data[offset + 2] * 0.4}, ${(255 - brightness) / 255})`;
+      const char = chars[Math.floor(Math.random() * chars.length)];
+      ctx.fillText(char, marginX + x * cellW, marginY + y * cellH);
+    }
+  }
+}
+
 function getWallpaperPalette() {
   const palettes = {
     wired: { background: '#fbfbf8', soft: '#9a9a94', mid: '#686862', ink: '#20201d', paperAlpha: 1, grain: 'rgba(0,0,0,0.035)' },
@@ -1587,7 +1769,7 @@ function drawDotOverlay(ctx, width, height, palette) {
 }
 
 function randomizeWallpaper() {
-  const artTypes = ['watercolor', 'poster', 'lowpoly', 'duotone', 'risograph', 'oilpaint', 'stainedglass', 'pencil', 'abstract'];
+  const artTypes = ['watercolor', 'poster', 'lowpoly', 'duotone', 'risograph', 'oilpaint', 'stainedglass', 'pencil', 'abstract', 'crosshatch', 'dither', 'popart', 'pointillism', 'engraving', 'cybermatrix'];
   const styles = ['wired', 'terminal', 'blueprint', 'amber', 'ink'];
   const textures = ['paper', 'grid', 'clean', 'film'];
   const compositions = ['center', 'left', 'right', 'top', 'bottom'];
@@ -1908,7 +2090,7 @@ function showToast(message, type = 'success') {
   const toast = document.getElementById('toast');
   toast.textContent = message;
   toast.className = `toast show ${type}`;
-  
+
   setTimeout(() => {
     toast.className = 'toast';
   }, 3000);
@@ -1918,43 +2100,5 @@ function initParticles() {
   const container = document.getElementById('bgParticles');
   if (!container) return;
 
-  // Grid particles - sit in grid cells, staggered
-  const gridChars = '┌┐└┘├┤┬┴┼═║╔╗╚╝█░▒▓';
-  for (let i = 0; i < 40; i++) {
-    const p = document.createElement('div');
-    p.className = 'grid-particle';
-    p.textContent = gridChars[Math.floor(Math.random() * gridChars.length)];
-    p.style.left = (Math.random() * 100) + '%';
-    p.style.top = (Math.random() * 100) + '%';
-    p.style.opacity = Math.random() * 0.15 + 0.03;
-    container.appendChild(p);
-  }
-
-  // Floating particles
-  const floatChars = '·:!|▒▓█▀▄▌▐░ █';
-  for (let i = 0; i < 15; i++) {
-    const p = document.createElement('div');
-    p.className = 'ascii-particle';
-    p.textContent = floatChars[Math.floor(Math.random() * floatChars.length)];
-    p.style.left = Math.random() * 100 + 'vw';
-    p.style.fontSize = (Math.random() * 18 + 14) + 'px';
-    p.style.opacity = Math.random() * 0.3 + 0.1;
-    p.style.animationDuration = (Math.random() * 25 + 18) + 's';
-    p.style.animationDelay = (Math.random() * -30) + 's';
-    if (Math.random() > 0.5) {
-      p.style.textShadow = '0 0 10px var(--accent)';
-    }
-    container.appendChild(p);
-  }
-
-  // Scattered binary
-  for (let i = 0; i < 20; i++) {
-    const b = document.createElement('div');
-    b.className = 'binary-particle';
-    b.textContent = Math.random() > 0.5 ? '0' : '1';
-    b.style.left = Math.random() * 100 + '%';
-    b.style.top = Math.random() * 100 + '%';
-    b.style.opacity = Math.random() * 0.12 + 0.03;
-    container.appendChild(b);
-  }
+  // Particles removed for a cleaner, professional design aesthetic.
 }
