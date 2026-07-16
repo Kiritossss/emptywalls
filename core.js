@@ -97,11 +97,11 @@ function toggleTheme() {
   if (state.theme === 'dark') {
     state.theme = 'light';
     body.dataset.theme = 'light';
-    icon.textContent = '☀️';
+    icon.textContent = 'light_mode';
   } else {
     state.theme = 'dark';
     delete body.dataset.theme;
-    icon.textContent = '🌙';
+    icon.textContent = 'dark_mode';
   }
   saveSettings();
 }

@@ -2,7 +2,7 @@
  * EMPTY WALL API INTEGRATION (Supabase)
  */
 
-// ⚠️ Replace these with your actual Supabase project credentials
+// WARNING: Replace these with your actual Supabase project credentials
 const SUPABASE_URL = 'https://your-project.supabase.co';
 const SUPABASE_ANON_KEY = 'your-anon-key';
 
