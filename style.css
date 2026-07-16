@@ -683,7 +683,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   background: var(--bg4);
   cursor: pointer;
   transition: all var(--transition);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border2);
 }
 
 .toggle-slider::before {
@@ -695,9 +695,9 @@ input[type="range"]::-webkit-slider-thumb:hover {
   top: 50%;
   transform: translateY(-50%);
   border-radius: 50%;
-  background: var(--text2);
+  background: #ffffff;
   transition: all var(--transition);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .toggle input:checked+.toggle-slider {
