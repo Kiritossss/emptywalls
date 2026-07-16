@@ -34,8 +34,10 @@ function loadImage(file) {
     img.onload = () => {
       state.image.currentImage = img;
       document.getElementById('uploadPlaceholder').style.display = 'none';
-      // Show original image first
-      showOriginalPreview(img);
+      // Preset-first flow: surface the one-click looks and render a good
+      // default immediately so the user sees a finished result on upload.
+      renderLookPicker();
+      applyLook(LOOK_PRESETS[0], { silent: true });
     };
     img.src = event.target.result;
   };
@@ -1455,6 +1457,64 @@ function exportWallpaperPack() {
     syncWallpaperControls();
     convertImage();
   }, pack.length * 280);
+}
+
+// --- One-click Looks (preset-first flow) ---
+const LOOK_PRESETS = [
+  { name: 'Poster',     artType: 'poster',     wallpaperStyle: 'wired',     texture: 'clean', contrast: 1.8, edgeBoost: 1.2 },
+  { name: 'Watercolor', artType: 'watercolor', wallpaperStyle: 'ink',       texture: 'paper', contrast: 1.2, edgeBoost: 0.7 },
+  { name: 'Low Poly',   artType: 'lowpoly',    wallpaperStyle: 'amber',     texture: 'clean', contrast: 2.0, edgeBoost: 1.6 },
+  { name: 'Duotone',    artType: 'duotone',    wallpaperStyle: 'blueprint', texture: 'clean', contrast: 1.8, edgeBoost: 1.0 },
+  { name: 'Risograph',  artType: 'risograph',  wallpaperStyle: 'ink',       texture: 'paper', contrast: 1.7, edgeBoost: 1.1 },
+  { name: 'Pop Art',    artType: 'popart',     wallpaperStyle: 'wired',     texture: 'clean', contrast: 1.9, edgeBoost: 1.2 },
+  { name: 'Oil Paint',  artType: 'oilpaint',   wallpaperStyle: 'ink',       texture: 'paper', contrast: 1.6, edgeBoost: 1.0 },
+  { name: 'Pencil',     artType: 'pencil',     wallpaperStyle: 'ink',       texture: 'paper', contrast: 1.6, edgeBoost: 2.2 },
+  { name: 'Neon',       artType: 'neon',       wallpaperStyle: 'terminal',  texture: 'film',  contrast: 2.4, edgeBoost: 2.6 },
+];
+
+// Apply a preset look, sync the advanced controls to match, and re-render.
+function applyLook(preset, { silent = false } = {}) {
+  state.image.artType = preset.artType;
+  state.image.wallpaperStyle = preset.wallpaperStyle;
+  state.image.texture = preset.texture;
+  state.image.contrast = preset.contrast;
+  state.image.edgeBoost = preset.edgeBoost;
+  saveSettings();
+  syncWallpaperControls();
+
+  document.querySelectorAll('#styleGallery .look-card').forEach((el) => {
+    el.classList.toggle('active', el.dataset.look === preset.name);
+  });
+
+  if (state.image.currentImage) convertImage();
+  if (!silent) showToast(`Applied ${preset.name}`);
+}
+
+// Build the labeled look-picker (no async thumbnail race — applies on click).
+function renderLookPicker() {
+  const gallery = document.getElementById('styleGallery');
+  if (!gallery) return;
+  gallery.innerHTML = '';
+  LOOK_PRESETS.forEach((preset) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'look-card';
+    card.dataset.look = preset.name;
+    card.classList.toggle('active', state.image.artType === preset.artType);
+    card.textContent = preset.name;
+    card.onclick = () => applyLook(preset);
+    gallery.appendChild(card);
+  });
+}
+
+// Show/hide the advanced control stack.
+function toggleAdvanced() {
+  const wrap = document.getElementById('advancedControls');
+  const btn = document.getElementById('advancedToggle');
+  if (!wrap) return;
+  const open = wrap.style.display !== 'none' && wrap.style.display !== '';
+  wrap.style.display = open ? 'none' : 'block';
+  if (btn) btn.classList.toggle('open', !open);
 }
 
 function renderStyleGallery() {
