@@ -62,7 +62,6 @@ function showOriginalPreview(img) {
   document.getElementById('imgAsciiOutput').style.display = 'none';
   document.getElementById('imgMetaLines').textContent = 'original preview';
   document.getElementById('imgMetaCols').textContent = `${width}×${height}`;
-  document.getElementById('imgMetaChars').textContent = '';
 }
 
 function updateImgWidth(val) {
@@ -318,8 +317,11 @@ function convertImage() {
     }
 
     document.getElementById('imgMetaCols').textContent = `${state.image.deviceWidth}×${state.image.deviceHeight}`;
-    updateSafeZoneOverlay();
     showImgLoading(false);
+    // showImgLoading() hides the canvas (it doubles as the spinner target); reveal
+    // the freshly-rendered wallpaper now that the job is done.
+    document.getElementById('wallpaperCanvas').style.display = 'block';
+    updateSafeZoneOverlay();
   };
 
   const workerOptions = {
