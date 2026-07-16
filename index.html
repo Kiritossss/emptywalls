@@ -527,6 +527,7 @@
                 onclick="showOriginalPreview(state.image.currentImage)">Original</button>
               <button class="btn-sm" onclick="copyImgOutput()">⎘ Copy</button>
               <button class="btn-sm" onclick="downloadImgOutput()">↓ PNG</button>
+              <button class="btn-sm btn-primary" onclick="openPublishModal()">↗ Publish</button>
             </div>
           </div>
           <div class="output-container glass" id="imgOutputContainer">
@@ -588,6 +589,25 @@
     <span>EMPTY WALLS @2026 - powered by empty corporation</span>
   </footer>
 
+  <!-- Publish Modal -->
+  <div class="modal-backdrop" id="publishModal" style="display:none" onclick="closePublishModal(event)">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="publishModalTitle">
+      <h3 class="modal-title" id="publishModalTitle">Publish to Web</h3>
+      <label class="modal-label" for="publishTitleInput">Title</label>
+      <input type="text" id="publishTitleInput" class="text-input" maxlength="80"
+        placeholder="Name your artwork" />
+      <label class="modal-label" for="publishVisibility">Visibility</label>
+      <select id="publishVisibility" class="text-input">
+        <option value="public">Public — visible on Explore</option>
+        <option value="private">Private — only via direct link</option>
+      </select>
+      <div class="modal-actions">
+        <button class="btn-sm" type="button" onclick="closePublishModal()">Cancel</button>
+        <button class="btn-sm btn-primary" type="button" onclick="submitPublish()">Publish</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
@@ -595,8 +615,12 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="fonts.js"></script>
+  <!-- app.js split into concern files (shared global scope; keep this load order) -->
+  <script src="core.js"></script>
+  <script src="text.js"></script>
+  <script src="image.js"></script>
+  <script src="output.js"></script>
   <script src="api.js"></script>
-  <script src="app.js"></script>
 </body>
 
 </html>

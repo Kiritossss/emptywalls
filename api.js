@@ -15,20 +15,40 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Triggered when a user clicks "Publish to Web"
+ * Triggered when a user clicks "Publish to Web" — opens the styled modal.
  */
 function openPublishModal() {
     const canvas = document.getElementById('wallpaperCanvas');
-    if (canvas.style.display === 'none') {
+    if (!canvas || canvas.style.display === 'none') {
         showToast('Generate an image before publishing', 'error');
         return;
     }
+    document.getElementById('publishTitleInput').value = '';
+    document.getElementById('publishVisibility').value = 'public';
+    document.getElementById('publishModal').style.display = 'flex';
+    document.getElementById('publishTitleInput').focus();
+}
 
-    const title = prompt("Enter a title for your artwork:");
-    if (!title) return;
+/**
+ * Closes the publish modal. When passed a click event, only closes on backdrop clicks.
+ */
+function closePublishModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('publishModal').style.display = 'none';
+}
 
-    const isPublic = confirm("Do you want this to be visible to everyone on the Explore page? (Cancel for Private)");
-
+/**
+ * Reads modal fields and kicks off the upload.
+ */
+function submitPublish() {
+    const title = document.getElementById('publishTitleInput').value.trim();
+    if (!title) {
+        showToast('Enter a title first', 'error');
+        return;
+    }
+    const isPublic = document.getElementById('publishVisibility').value === 'public';
+    const canvas = document.getElementById('wallpaperCanvas');
+    closePublishModal();
     publishCreation(title, isPublic, canvas);
 }
 
@@ -100,9 +120,11 @@ async function loadExploreFeed() {
     // Construct the database query
     let query = supabaseClient.from('posts').select('*').eq('visibility', 'public');
 
-    if (searchQuery) {
-        // Search by title or config artType
-        query = query.or(`title.ilike.%${searchQuery}%,config->>artType.ilike.%${searchQuery}%`);
+    // Strip PostgREST filter-significant chars so a crafted query can't inject
+    // extra conditions into the .or() expression. See sanitizeSearch().
+    const safeQuery = sanitizeSearch(searchQuery);
+    if (safeQuery) {
+        query = query.or(`title.ilike.%${safeQuery}%,config->>artType.ilike.%${safeQuery}%`);
     }
 
     if (sortBy === 'newest') query = query.order('created_at', { ascending: false });
@@ -115,19 +137,50 @@ async function loadExploreFeed() {
         return;
     }
 
-    // Render the posts
+    // Render the posts. Build nodes with textContent / validated src so a malicious
+    // post title or image_url can't inject markup (stored XSS).
     gallery.innerHTML = '';
     publicPosts.forEach(post => {
+        const config = post.config || {};
         const card = document.createElement('div');
         card.className = 'gallery-card';
-        // Click on a community card to copy their style!
-        card.onclick = () => loadCommunityStyle(post.config);
-        card.innerHTML = `
-            <img src="${post.image_url}" alt="${post.title}">
-            <span>${post.title} <br><small style="color:var(--text4)">Style: ${post.config.artType}</small></span>
-        `;
+        card.onclick = () => loadCommunityStyle(config);
+
+        const img = document.createElement('img');
+        img.src = safeImageUrl(post.image_url);
+        img.alt = post.title || '';
+        img.loading = 'lazy';
+
+        const span = document.createElement('span');
+        span.textContent = (post.title || 'Untitled') + ' ';
+        const small = document.createElement('small');
+        small.style.color = 'var(--text4)';
+        small.textContent = 'Style: ' + (config.artType || '—');
+        span.append(document.createElement('br'), small);
+
+        card.append(img, span);
         gallery.appendChild(card);
     });
+}
+
+/**
+ * Removes characters that carry meaning inside a PostgREST `.or()` filter string
+ * (commas separate conditions; parens group them; * / % are wildcards). Also caps length.
+ */
+function sanitizeSearch(raw) {
+    return (raw || '').replace(/[,()*%\\]/g, '').trim().slice(0, 80);
+}
+
+/**
+ * Only allow http(s) image URLs; anything else (javascript:, data:, …) becomes empty.
+ */
+function safeImageUrl(url) {
+    try {
+        const u = new URL(url, window.location.origin);
+        return (u.protocol === 'http:' || u.protocol === 'https:') ? u.href : '';
+    } catch {
+        return '';
+    }
 }
 
 function handleSearch(event) {
