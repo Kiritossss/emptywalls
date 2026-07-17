@@ -362,7 +362,9 @@ function renderCards(gallery, posts, emptyText, likedSet) {
         const small = document.createElement('small');
         small.style.color = 'var(--text4)';
         const tag = post.visibility === 'private' ? ' · private' : '';
-        small.textContent = 'Style: ' + (config.artType || '—') + tag;
+        const res = (config.deviceWidth && config.deviceHeight)
+            ? ` · ${config.deviceWidth}×${config.deviceHeight}` : '';
+        small.textContent = 'Style: ' + (config.artType || '—') + res + tag;
         span.append(document.createElement('br'), small);
 
         // Clicking the card body still applies just the style to your own image.
