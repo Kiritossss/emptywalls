@@ -419,16 +419,58 @@ function renderCards(gallery, posts, emptyText, likedSet) {
         small.textContent = (config.original ? 'Original image' : 'Style: ' + (config.artType || '—')) + res + tag;
         span.append(document.createElement('br'), small);
 
-        // Original posts open in the editor on click (no style to copy); styled
-        // posts apply their look to your own uploaded image.
-        card.onclick = config.original
-            ? () => usePublicImage(img.src)
-            : () => loadCommunityStyle(config);
+        // Clicking a card opens the full-size preview lightbox.
+        card.onclick = () => openPreview(post);
         card.append(media, span);
         gallery.appendChild(card);
 
-        resolveImageUrl(post).then(url => { if (url) img.src = url; });
+        resolveImageUrl(post).then(url => { if (url) { img.src = url; post._url = url; } });
     });
+}
+
+/* ─── Preview lightbox ────────────────────────────────────────────────── */
+
+let _previewPost = null;
+
+function previewActionBtn(icon, label, fn) {
+    const b = document.createElement('button');
+    b.className = 'btn-sm';
+    b.innerHTML = `<span class="material-symbols-outlined">${icon}</span> ${label}`;
+    b.onclick = fn;
+    return b;
+}
+
+/** Opens a full-size preview of a post with its actions. */
+function openPreview(post) {
+    _previewPost = post;
+    const cfg = post.config || {};
+    const img = document.getElementById('previewImg');
+    img.src = '';
+    if (post._url) img.src = post._url;
+    else resolveImageUrl(post).then(u => { if (_previewPost === post && u) img.src = u; });
+
+    document.getElementById('previewTitle').textContent = post.title || 'Untitled';
+    const bits = [cfg.original ? 'Original image' : 'Style: ' + (cfg.artType || '—')];
+    if (cfg.deviceWidth && cfg.deviceHeight) bits.push(`${cfg.deviceWidth}×${cfg.deviceHeight}`);
+    if (post.visibility === 'private') bits.push('private');
+    document.getElementById('previewMeta').textContent = bits.join(' · ');
+
+    const acts = document.getElementById('previewActions');
+    acts.innerHTML = '';
+    acts.append(
+        previewActionBtn('edit', 'Edit', () => { closePreview(); usePublicImage(img.src); }),
+        previewActionBtn('download', 'Download', () => downloadPublicImage(img.src, post.title))
+    );
+    if (!cfg.original) {
+        acts.append(previewActionBtn('palette', 'Apply style', () => { closePreview(); loadCommunityStyle(cfg); }));
+    }
+    document.getElementById('previewModal').style.display = 'flex';
+}
+
+function closePreview(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('previewModal').style.display = 'none';
+    _previewPost = null;
 }
 
 /**
