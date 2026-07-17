@@ -1336,6 +1336,34 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: var(--text);
 }
 
+.modal-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text3);
+}
+
+.auth-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.auth-email {
+  font-size: 0.8rem;
+  color: var(--text2);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.auth-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
 .modal-label {
   font-size: 0.72rem;
   font-weight: 500;

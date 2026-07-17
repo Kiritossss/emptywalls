@@ -20,7 +20,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
     rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 
 <body>
@@ -583,6 +583,25 @@
 
     <!-- ── EXPLORE TAB (PUBLIC GALLERY) ── -->
     <section class="tab-panel" id="panelExplore">
+      <!-- Auth bar -->
+      <div class="controls-panel glass auth-bar" id="authBar">
+        <span class="auth-email" id="authEmailLabel" style="display:none"></span>
+        <div class="auth-actions">
+          <button class="btn-sm" id="myCreationsBtn" style="display:none" onclick="loadMyCreations()">
+            <span class="material-symbols-outlined">grid_view</span> My Creations
+          </button>
+          <button class="btn-sm" onclick="showPublicGallery()">
+            <span class="material-symbols-outlined">public</span> Public
+          </button>
+          <button class="btn-sm btn-primary" id="authSignInBtn" onclick="openAuthModal()">
+            <span class="material-symbols-outlined">login</span> Sign in
+          </button>
+          <button class="btn-sm" id="authSignOutBtn" style="display:none" onclick="signOut()">
+            <span class="material-symbols-outlined">logout</span> Sign out
+          </button>
+        </div>
+      </div>
+
       <div class="controls-panel glass" style="margin-bottom: 2rem; display: flex; gap: 1rem; align-items: center;">
         <input type="text" id="searchInput" class="text-input" placeholder="Search by name or style (e.g., 'Cyberpunk')"
           onkeyup="handleSearch(event)" style="flex: 1;" />
@@ -598,7 +617,7 @@
 
       <div class="output-container glass">
         <div class="output-toolbar">
-          <span class="output-label">Public Community Gallery</span>
+          <span class="output-label" id="galleryLabel">Public Community Gallery</span>
         </div>
 
         <!-- The gallery feed will be injected here via JavaScript -->
@@ -631,6 +650,21 @@
     </div>
   </div>
 
+  <!-- Auth Modal -->
+  <div class="modal-backdrop" id="authModal" style="display:none" onclick="closeAuthModal(event)">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+      <h3 class="modal-title" id="authModalTitle">Sign in</h3>
+      <p class="modal-hint">We'll email you a magic link — no password needed.</p>
+      <label class="modal-label" for="authEmailInput">Email</label>
+      <input type="email" id="authEmailInput" class="text-input" autocomplete="email"
+        placeholder="you@example.com" onkeyup="if(event.key==='Enter')sendMagicLink()" />
+      <div class="modal-actions">
+        <button class="btn-sm" type="button" onclick="closeAuthModal()">Cancel</button>
+        <button class="btn-sm btn-primary" type="button" onclick="sendMagicLink()">Send link</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
@@ -638,13 +672,13 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- bump ?v= on each deploy to bust the browser cache for updated JS -->
-  <script src="fonts.js?v=4"></script>
+  <script src="fonts.js?v=5"></script>
   <!-- app.js split into concern files (shared global scope; keep this load order) -->
-  <script src="core.js?v=4"></script>
-  <script src="text.js?v=4"></script>
-  <script src="image.js?v=4"></script>
-  <script src="output.js?v=4"></script>
-  <script src="api.js?v=4"></script>
+  <script src="core.js?v=5"></script>
+  <script src="text.js?v=5"></script>
+  <script src="image.js?v=5"></script>
+  <script src="output.js?v=5"></script>
+  <script src="api.js?v=5"></script>
 </body>
 
 </html>
