@@ -256,6 +256,33 @@ function selectImgColor(btn, colorClass) {
   if (state.image.currentImage) convertImage();
 }
 
+// Callbacks awaiting the next completed render (see renderAndWait).
+let renderDoneResolvers = [];
+
+/**
+ * Re-renders the wallpaper at a target device resolution and resolves once the
+ * worker finishes, so callers (like Publish) can capture a full-res canvas.
+ * Restores the previous device size afterwards unless keepDevice is true.
+ */
+function renderAndWait(width, height, keepDevice) {
+  return new Promise(resolve => {
+    if (!state.image.currentImage) { resolve(); return; }
+    const prevW = state.image.deviceWidth;
+    const prevH = state.image.deviceHeight;
+    const restore = !keepDevice && (prevW !== width || prevH !== height);
+    state.image.deviceWidth = width;
+    state.image.deviceHeight = height;
+    renderDoneResolvers.push(() => {
+      if (restore) {
+        state.image.deviceWidth = prevW;
+        state.image.deviceHeight = prevH;
+      }
+      resolve();
+    });
+    convertImage();
+  });
+}
+
 function convertImage() {
   if (!state.image.currentImage) return;
 
@@ -324,6 +351,10 @@ function convertImage() {
     // the freshly-rendered wallpaper now that the job is done.
     document.getElementById('wallpaperCanvas').style.display = 'block';
     updateSafeZoneOverlay();
+    // Resolve any renderAndWait() promises waiting on this render (e.g. publish).
+    const resolvers = renderDoneResolvers;
+    renderDoneResolvers = [];
+    resolvers.forEach(fn => fn());
   };
 
   const workerOptions = {

@@ -160,18 +160,27 @@ function submitPublish() {
         return;
     }
     const isPublic = document.getElementById('publishVisibility').value === 'public';
+    const resolution = document.getElementById('publishResolution').value;
     const canvas = document.getElementById('wallpaperCanvas');
     closePublishModal();
-    publishCreation(title, isPublic, canvas);
+    publishCreation(title, isPublic, canvas, resolution);
 }
 
 /** Uploads the image to the right bucket and saves the post row. */
-async function publishCreation(title, isPublic, canvas) {
+async function publishCreation(title, isPublic, canvas, resolution) {
     const user = requireAuth();
     if (!user) return;
 
     showImgLoading(true);
     try {
+        // Re-render at the chosen resolution (independent of the editor's Device)
+        // so people can always publish at full quality. renderAndWait restores
+        // the previous device size afterwards.
+        let outW = state.image.deviceWidth, outH = state.image.deviceHeight;
+        if (resolution && resolution !== 'match') {
+            [outW, outH] = resolution.split('x').map(Number);
+            await renderAndWait(outW, outH, false);
+        }
         // PNG (lossless) — JPEG's block artifacts ruin the crisp ASCII/line art.
         const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
         const bucket = isPublic ? PUBLIC_BUCKET : PRIVATE_BUCKET;
@@ -183,13 +192,18 @@ async function publishCreation(title, isPublic, canvas) {
             .upload(path, imageBlob, { contentType: 'image/png' });
         if (uploadError) throw uploadError;
 
+        // Store render params only (never the Image object), with the resolution
+        // actually published so gallery cards report it accurately.
+        const { currentImage, ...cleanConfig } = state.image;
+        const config = { ...cleanConfig, deviceWidth: outW, deviceHeight: outH };
+
         // user_id is filled by the column default (auth.uid()); RLS enforces ownership.
         const { error: dbError } = await supabaseClient.from('posts').insert([{
             title,
             bucket,
             image_path: path,
             visibility: isPublic ? 'public' : 'private',
-            config: state.image
+            config
         }]);
         if (dbError) throw dbError;
 
@@ -330,7 +344,7 @@ function renderCards(gallery, posts, emptyText, likedSet) {
         editBtn.className = 'btn-sm';
         editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span> Edit';
         editBtn.title = 'Open this image in the editor';
-        editBtn.onclick = (e) => { e.stopPropagation(); usePublicImage(img.src, config); };
+        editBtn.onclick = (e) => { e.stopPropagation(); usePublicImage(img.src); };
 
         const dlBtn = document.createElement('button');
         dlBtn.className = 'btn-sm';
@@ -376,15 +390,13 @@ function renderCards(gallery, posts, emptyText, likedSet) {
     });
 }
 
-/** Copies a post's aesthetic settings into state.image (no image required). */
-function applyStyleConfig(config) {
-    if (!config) return;
-    ['artType', 'wallpaperStyle', 'texture', 'contrast', 'edgeBoost', 'funkyMode', 'chaos']
-        .forEach(k => { if (config[k] !== undefined) state.image[k] = config[k]; });
-}
-
-/** Loads a published image into the editor as the working image, then renders it. */
-function usePublicImage(url, config) {
+/**
+ * Loads a published image into the editor as a fresh source image — same as a
+ * normal upload. We deliberately do NOT re-apply the post's art config: the
+ * published file is already a finished render, so re-running the pipeline on it
+ * would mangle it. Show the image as-is and let the user pick a look.
+ */
+function usePublicImage(url) {
     if (!url) { showToast('Image not ready yet', 'error'); return; }
     const img = new Image();
     img.crossOrigin = 'anonymous'; // keep the canvas untainted so getImageData works
@@ -392,13 +404,11 @@ function usePublicImage(url, config) {
         state.image.currentImage = img;
         const ph = document.getElementById('uploadPlaceholder');
         if (ph) ph.style.display = 'none';
-        applyStyleConfig(config);
         switchTab('image');
-        syncWallpaperControls();
-        convertImage();
-        showToast('Loaded into editor');
+        showOriginalPreview(img);       // show it as-is, like a fresh upload
+        showToast('Loaded into editor — pick a look to restyle');
     };
-    img.onerror = () => showToast('Could not load that image', 'error');
+    img.onerror = () => showToast('Could not load that image (CORS?)', 'error');
     img.src = url;
 }
 
