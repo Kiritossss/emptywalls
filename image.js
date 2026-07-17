@@ -804,10 +804,15 @@ function drawAbstractField(ctx, data, brightnessMap, edgeMap, cols, rows, margin
     ctx.fillStyle = getPosterColor(data, Math.floor(cols / 2), y, cols, 5, 0.72);
     ctx.beginPath();
     ctx.moveTo(marginX, marginY + y * cellH);
-    for (let x = 0; x <= cols; x += Math.max(4, Math.floor(cols / 28))) {
-      const index = Math.min(rows - 1, y) * cols + Math.min(cols - 1, x);
+    const step = Math.max(4, Math.floor(cols / 28));
+    for (let x = 0; x <= cols; x += step) {
+      // Always land exactly on the right edge so the top contour reaches the
+      // border — otherwise a triangular gap opens up in the top-right corner.
+      const xc = Math.min(x, cols);
+      const index = Math.min(rows - 1, y) * cols + Math.min(cols - 1, xc);
       const wobble = (edgeMap.magnitude[index] || 0) * cellH * 0.04;
-      ctx.lineTo(marginX + x * cellW, marginY + y * cellH + Math.sin(x * 0.15 + i) * 30 + wobble);
+      ctx.lineTo(marginX + xc * cellW, marginY + y * cellH + Math.sin(xc * 0.15 + i) * 30 + wobble);
+      if (xc === cols) break;
     }
     ctx.lineTo(marginX + cols * cellW, marginY + rows * cellH);
     ctx.lineTo(marginX, marginY + rows * cellH);
