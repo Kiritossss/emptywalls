@@ -222,13 +222,15 @@ async function loadExploreFeed() {
         query = query.or(`title.ilike.%${safeQuery}%,config->>artType.ilike.%${safeQuery}%`);
     }
     if (sortBy === 'newest') query = query.order('created_at', { ascending: false });
+    else query = query.order('like_count', { ascending: false }).order('created_at', { ascending: false });
 
     const { data, error } = await query;
     if (error) {
         setGalleryMessage(gallery, 'Error loading feed.', true);
         return;
     }
-    renderCards(gallery, data, 'No public creations yet — be the first to publish!');
+    const liked = await fetchLikedSet(data);
+    renderCards(gallery, data, 'No public creations yet — be the first to publish!', liked);
 }
 
 /** "My Creations" — the signed-in user's own posts (public + private). */
@@ -246,7 +248,42 @@ async function loadMyCreations() {
         setGalleryMessage(gallery, 'Error loading your creations.', true);
         return;
     }
-    renderCards(gallery, data, 'You have not published anything yet.');
+    const liked = await fetchLikedSet(data);
+    renderCards(gallery, data, 'You have not published anything yet.', liked);
+}
+
+/** Returns the set of post ids the current user has liked (empty if signed out). */
+async function fetchLikedSet(posts) {
+    if (!currentUser || !posts || posts.length === 0) return new Set();
+    const ids = posts.map(p => p.id);
+    const { data } = await supabaseClient
+        .from('likes').select('post_id')
+        .eq('user_id', currentUser.id).in('post_id', ids);
+    return new Set((data || []).map(r => r.post_id));
+}
+
+/** Toggles the current user's like on a post, with optimistic UI. */
+async function toggleLike(postId, btn) {
+    if (!requireAuth()) return;
+    const wasLiked = btn.dataset.liked === '1';
+    const nEl = btn.querySelector('.like-n');
+    const n = parseInt(nEl.textContent || '0', 10) || 0;
+
+    // Optimistic update.
+    btn.dataset.liked = wasLiked ? '0' : '1';
+    btn.classList.toggle('liked', !wasLiked);
+    nEl.textContent = wasLiked ? Math.max(0, n - 1) : n + 1;
+
+    const { error } = wasLiked
+        ? await supabaseClient.from('likes').delete().eq('post_id', postId).eq('user_id', currentUser.id)
+        : await supabaseClient.from('likes').insert([{ post_id: postId }]);
+
+    if (error) { // revert
+        btn.dataset.liked = wasLiked ? '1' : '0';
+        btn.classList.toggle('liked', wasLiked);
+        nEl.textContent = n;
+        showToast('Could not update like', 'error');
+    }
 }
 
 function showPublicGallery() {
@@ -266,7 +303,7 @@ function setGalleryMessage(gallery, text, isError) {
 }
 
 /** Builds cards with textContent (XSS-safe); resolves image URLs asynchronously. */
-function renderCards(gallery, posts, emptyText) {
+function renderCards(gallery, posts, emptyText, likedSet) {
     if (!posts || posts.length === 0) {
         setGalleryMessage(gallery, emptyText);
         return;
@@ -301,7 +338,23 @@ function renderCards(gallery, posts, emptyText) {
         dlBtn.onclick = (e) => { e.stopPropagation(); downloadPublicImage(img.src, post.title); };
 
         actions.append(editBtn, dlBtn);
-        media.append(img, actions);
+
+        // Like button (always visible, top-right). Shows count; toggles on click.
+        const liked = !!(likedSet && likedSet.has(post.id));
+        const likeBtn = document.createElement('button');
+        likeBtn.className = 'gallery-like' + (liked ? ' liked' : '');
+        likeBtn.dataset.liked = liked ? '1' : '0';
+        likeBtn.title = 'Like';
+        const heart = document.createElement('span');
+        heart.className = 'material-symbols-outlined';
+        heart.textContent = 'favorite';
+        const count = document.createElement('span');
+        count.className = 'like-n';
+        count.textContent = post.like_count || 0;
+        likeBtn.append(heart, count);
+        likeBtn.onclick = (e) => { e.stopPropagation(); toggleLike(post.id, likeBtn); };
+
+        media.append(img, actions, likeBtn);
 
         const span = document.createElement('span');
         span.textContent = (post.title || 'Untitled') + ' ';

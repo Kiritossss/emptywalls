@@ -42,6 +42,45 @@ drop policy if exists "posts_delete" on public.posts;
 create policy "posts_delete" on public.posts
   for delete using (user_id = auth.uid());
 
+-- 2b. LIKES -----------------------------------------------------------------
+-- Per-user likes plus a denormalized like_count on posts (kept in sync by a
+-- trigger) so the "Most Popular" sort is a simple, fast ORDER BY.
+alter table public.posts add column if not exists like_count integer not null default 0;
+
+create table if not exists public.likes (
+  post_id    uuid not null references public.posts (id) on delete cascade,
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (post_id, user_id)
+);
+
+alter table public.likes enable row level security;
+
+-- Anyone may read likes (counts / who-liked); users write only their own like.
+drop policy if exists "likes_select" on public.likes;
+create policy "likes_select" on public.likes for select using (true);
+drop policy if exists "likes_insert" on public.likes;
+create policy "likes_insert" on public.likes for insert with check (user_id = auth.uid());
+drop policy if exists "likes_delete" on public.likes;
+create policy "likes_delete" on public.likes for delete using (user_id = auth.uid());
+
+-- Keep posts.like_count in sync. SECURITY DEFINER so the counter can update a
+-- post the liker does not own (posts RLS would otherwise block it).
+create or replace function public.bump_like_count()
+  returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if (tg_op = 'INSERT') then
+    update public.posts set like_count = like_count + 1 where id = new.post_id;
+  elsif (tg_op = 'DELETE') then
+    update public.posts set like_count = greatest(0, like_count - 1) where id = old.post_id;
+  end if;
+  return null;
+end $$;
+
+drop trigger if exists likes_count_trg on public.likes;
+create trigger likes_count_trg after insert or delete on public.likes
+  for each row execute function public.bump_like_count();
+
 -- 3. STORAGE BUCKETS --------------------------------------------------------
 -- public-wallpapers: served via public CDN URL (public posts only).
 -- private-wallpapers: fetched only through short-lived signed URLs (owner only).
