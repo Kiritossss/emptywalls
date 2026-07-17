@@ -938,11 +938,35 @@ input[type="range"]::-webkit-slider-thumb:hover {
   box-shadow: var(--shadow2);
 }
 
+.gallery-media {
+  position: relative;
+  overflow: hidden;
+}
 .gallery-card img {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
+}
+.gallery-actions {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  justify-content: flex-end;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: all var(--transition);
+}
+.gallery-card:hover .gallery-actions,
+.gallery-actions:focus-within {
+  opacity: 1;
+  transform: translateY(0);
+}
+.gallery-actions .btn-sm {
+  backdrop-filter: blur(4px);
 }
 
 .gallery-card span {

@@ -276,11 +276,32 @@ function renderCards(gallery, posts, emptyText) {
         const config = post.config || {};
         const card = document.createElement('div');
         card.className = 'gallery-card';
-        card.onclick = () => loadCommunityStyle(config);
+
+        const media = document.createElement('div');
+        media.className = 'gallery-media';
 
         const img = document.createElement('img');
         img.alt = post.title || '';
         img.loading = 'lazy';
+
+        // Hover actions: Edit (load into the editor) and Download.
+        const actions = document.createElement('div');
+        actions.className = 'gallery-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn-sm';
+        editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span> Edit';
+        editBtn.title = 'Open this image in the editor';
+        editBtn.onclick = (e) => { e.stopPropagation(); usePublicImage(img.src, config); };
+
+        const dlBtn = document.createElement('button');
+        dlBtn.className = 'btn-sm';
+        dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
+        dlBtn.title = 'Download image';
+        dlBtn.onclick = (e) => { e.stopPropagation(); downloadPublicImage(img.src, post.title); };
+
+        actions.append(editBtn, dlBtn);
+        media.append(img, actions);
 
         const span = document.createElement('span');
         span.textContent = (post.title || 'Untitled') + ' ';
@@ -290,11 +311,61 @@ function renderCards(gallery, posts, emptyText) {
         small.textContent = 'Style: ' + (config.artType || '—') + tag;
         span.append(document.createElement('br'), small);
 
-        card.append(img, span);
+        // Clicking the card body still applies just the style to your own image.
+        card.onclick = () => loadCommunityStyle(config);
+        card.append(media, span);
         gallery.appendChild(card);
 
         resolveImageUrl(post).then(url => { if (url) img.src = url; });
     });
+}
+
+/** Copies a post's aesthetic settings into state.image (no image required). */
+function applyStyleConfig(config) {
+    if (!config) return;
+    ['artType', 'wallpaperStyle', 'texture', 'contrast', 'edgeBoost', 'funkyMode', 'chaos']
+        .forEach(k => { if (config[k] !== undefined) state.image[k] = config[k]; });
+}
+
+/** Loads a published image into the editor as the working image, then renders it. */
+function usePublicImage(url, config) {
+    if (!url) { showToast('Image not ready yet', 'error'); return; }
+    const img = new Image();
+    img.crossOrigin = 'anonymous'; // keep the canvas untainted so getImageData works
+    img.onload = () => {
+        state.image.currentImage = img;
+        const ph = document.getElementById('uploadPlaceholder');
+        if (ph) ph.style.display = 'none';
+        applyStyleConfig(config);
+        switchTab('image');
+        syncWallpaperControls();
+        convertImage();
+        showToast('Loaded into editor');
+    };
+    img.onerror = () => showToast('Could not load that image', 'error');
+    img.src = url;
+}
+
+/** Downloads a gallery image as a JPEG (falls back to opening it if CORS blocks fetch). */
+async function downloadPublicImage(url, title) {
+    if (!url) { showToast('Image not ready yet', 'error'); return; }
+    const name = (title || 'wallpaper').replace(/[^\w-]+/g, '_').slice(0, 60) + '.jpg';
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('fetch failed');
+        const blob = await res.blob();
+        const obj = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = obj;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(obj);
+        showToast('Downloaded');
+    } catch {
+        window.open(url, '_blank', 'noopener');
+    }
 }
 
 /** Public bucket → public URL; private bucket → short-lived signed URL. */
