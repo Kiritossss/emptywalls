@@ -354,6 +354,16 @@ function renderCards(gallery, posts, emptyText, likedSet) {
 
         actions.append(editBtn, dlBtn);
 
+        // Owner-only delete.
+        if (currentUser && post.user_id === currentUser.id) {
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn-sm gallery-del';
+            delBtn.innerHTML = '<span class="material-symbols-outlined">delete</span>';
+            delBtn.title = 'Delete';
+            delBtn.onclick = (e) => { e.stopPropagation(); deletePost(post, card); };
+            actions.append(delBtn);
+        }
+
         // Like button (always visible, top-right). Shows count; toggles on click.
         const liked = !!(likedSet && likedSet.has(post.id));
         const likeBtn = document.createElement('button');
@@ -405,6 +415,7 @@ function usePublicImage(url) {
         const ph = document.getElementById('uploadPlaceholder');
         if (ph) ph.style.display = 'none';
         switchTab('image');
+        renderLookPicker();             // populate the "Pick a look" panel
         showOriginalPreview(img);       // show it as-is, like a fresh upload
         showToast('Loaded into editor — pick a look to restyle');
     };
@@ -433,6 +444,22 @@ async function downloadPublicImage(url, title) {
     } catch {
         window.open(url, '_blank', 'noopener');
     }
+}
+
+/** Deletes one of the current user's posts (row + stored image). Owner-only via RLS. */
+async function deletePost(post, cardEl) {
+    if (!requireAuth()) return;
+    if (!confirm(`Delete "${post.title || 'this creation'}"? This cannot be undone.`)) return;
+
+    const { error } = await supabaseClient.from('posts').delete().eq('id', post.id);
+    if (error) { showToast('Could not delete: ' + error.message, 'error'); return; }
+
+    // Best-effort remove the stored image (row is already gone; likes cascade).
+    if (post.bucket && post.image_path) {
+        supabaseClient.storage.from(post.bucket).remove([post.image_path]);
+    }
+    if (cardEl) cardEl.remove();
+    showToast('Deleted');
 }
 
 /** Public bucket → public URL; private bucket → short-lived signed URL. */

@@ -34,10 +34,10 @@ function loadImage(file) {
     img.onload = () => {
       state.image.currentImage = img;
       document.getElementById('uploadPlaceholder').style.display = 'none';
-      // Preset-first flow: surface the one-click looks and render a good
-      // default immediately so the user sees a finished result on upload.
+      // Show the uploaded image as-is and surface the one-click looks; let the
+      // user choose a look instead of forcing one (e.g. Poster) on them.
       renderLookPicker();
-      applyLook(LOOK_PRESETS[0], { silent: true });
+      showOriginalPreview(img);
     };
     img.src = event.target.result;
   };

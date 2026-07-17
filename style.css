@@ -968,6 +968,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .gallery-actions .btn-sm {
   backdrop-filter: blur(4px);
 }
+.gallery-actions .gallery-del:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
 .gallery-like {
   position: absolute;
   top: 0.5rem;
