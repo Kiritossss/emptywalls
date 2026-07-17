@@ -23,7 +23,23 @@ function isBackendConfigured() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (window.supabase && !SUPABASE_URL.includes('your-project')) {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true,
+                // Implicit flow keeps the token in the URL hash so magic links work
+                // even when opened in a different browser than they were requested
+                // from (PKCE needs a code_verifier from the original context).
+                flowType: 'implicit'
+            }
+        });
+
+        // Surface auth errors the redirect may carry back (e.g. expired link).
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        if (hashParams.get('error_description')) {
+            showToast(decodeURIComponent(hashParams.get('error_description')), 'error');
+        }
 
         const { data } = await supabaseClient.auth.getSession();
         currentUser = data.session ? data.session.user : null;
