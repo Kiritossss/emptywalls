@@ -143,8 +143,18 @@ function openPublishModal() {
     if (!requireAuth()) return;
     document.getElementById('publishTitleInput').value = '';
     document.getElementById('publishVisibility').value = 'public';
+    document.getElementById('publishAs').value = 'styled';
+    onPublishAsChange();
     document.getElementById('publishModal').style.display = 'flex';
     document.getElementById('publishTitleInput').focus();
+}
+
+/** Resolution only applies to styled renders; hide it when publishing the original. */
+function onPublishAsChange() {
+    const isOriginal = document.getElementById('publishAs').value === 'original';
+    const show = isOriginal ? 'none' : '';
+    document.getElementById('publishResolution').style.display = show;
+    document.getElementById('publishResolutionLabel').style.display = show;
 }
 
 /** Closes the publish modal. With a click event, only closes on backdrop clicks. */
@@ -161,28 +171,51 @@ function submitPublish() {
     }
     const isPublic = document.getElementById('publishVisibility').value === 'public';
     const resolution = document.getElementById('publishResolution').value;
+    const mode = document.getElementById('publishAs').value; // 'styled' | 'original'
     const canvas = document.getElementById('wallpaperCanvas');
     closePublishModal();
-    publishCreation(title, isPublic, canvas, resolution);
+    publishCreation(title, isPublic, canvas, resolution, mode);
 }
 
 /** Uploads the image to the right bucket and saves the post row. */
-async function publishCreation(title, isPublic, canvas, resolution) {
+async function publishCreation(title, isPublic, canvas, resolution, mode) {
     const user = requireAuth();
     if (!user) return;
 
     showImgLoading(true);
     try {
-        // Re-render at the chosen resolution (independent of the editor's Device)
-        // so people can always publish at full quality. renderAndWait restores
-        // the previous device size afterwards.
-        let outW = state.image.deviceWidth, outH = state.image.deviceHeight;
-        if (resolution && resolution !== 'match') {
-            [outW, outH] = resolution.split('x').map(Number);
-            await renderAndWait(outW, outH, false);
+        let imageBlob, outW, outH, config;
+
+        if (mode === 'original') {
+            // Publish the plain uploaded image, unedited, at its native resolution.
+            const src = state.image.currentImage;
+            if (!src) throw new Error('no source image');
+            outW = src.naturalWidth || src.width;
+            outH = src.naturalHeight || src.height;
+            const tmp = document.createElement('canvas');
+            tmp.width = outW;
+            tmp.height = outH;
+            tmp.getContext('2d').drawImage(src, 0, 0);
+            imageBlob = await new Promise(resolve => tmp.toBlob(resolve, 'image/png'));
+            config = { original: true, artType: 'original', deviceWidth: outW, deviceHeight: outH };
+        } else {
+            // Re-render at the chosen resolution (independent of the editor's Device)
+            // so people can always publish at full quality. renderAndWait restores
+            // the previous device size afterwards.
+            outW = state.image.deviceWidth;
+            outH = state.image.deviceHeight;
+            if (resolution && resolution !== 'match') {
+                [outW, outH] = resolution.split('x').map(Number);
+                await renderAndWait(outW, outH, false);
+            }
+            // PNG (lossless) — JPEG's block artifacts ruin the crisp ASCII/line art.
+            imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            // Store render params only (never the Image object), with the resolution
+            // actually published so gallery cards report it accurately.
+            const { currentImage, ...cleanConfig } = state.image;
+            config = { ...cleanConfig, deviceWidth: outW, deviceHeight: outH };
         }
-        // PNG (lossless) — JPEG's block artifacts ruin the crisp ASCII/line art.
-        const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
         const bucket = isPublic ? PUBLIC_BUCKET : PRIVATE_BUCKET;
         // Files live under the owner's uid folder — storage RLS keys off that.
         const path = `${user.id}/wallpaper_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
@@ -191,11 +224,6 @@ async function publishCreation(title, isPublic, canvas, resolution) {
             .storage.from(bucket)
             .upload(path, imageBlob, { contentType: 'image/png' });
         if (uploadError) throw uploadError;
-
-        // Store render params only (never the Image object), with the resolution
-        // actually published so gallery cards report it accurately.
-        const { currentImage, ...cleanConfig } = state.image;
-        const config = { ...cleanConfig, deviceWidth: outW, deviceHeight: outH };
 
         // user_id is filled by the column default (auth.uid()); RLS enforces ownership.
         const { error: dbError } = await supabaseClient.from('posts').insert([{
@@ -388,11 +416,14 @@ function renderCards(gallery, posts, emptyText, likedSet) {
         const tag = post.visibility === 'private' ? ' · private' : '';
         const res = (config.deviceWidth && config.deviceHeight)
             ? ` · ${config.deviceWidth}×${config.deviceHeight}` : '';
-        small.textContent = 'Style: ' + (config.artType || '—') + res + tag;
+        small.textContent = (config.original ? 'Original image' : 'Style: ' + (config.artType || '—')) + res + tag;
         span.append(document.createElement('br'), small);
 
-        // Clicking the card body still applies just the style to your own image.
-        card.onclick = () => loadCommunityStyle(config);
+        // Original posts open in the editor on click (no style to copy); styled
+        // posts apply their look to your own uploaded image.
+        card.onclick = config.original
+            ? () => usePublicImage(img.src)
+            : () => loadCommunityStyle(config);
         card.append(media, span);
         gallery.appendChild(card);
 
