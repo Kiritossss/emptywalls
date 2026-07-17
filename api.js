@@ -5,9 +5,10 @@
  * live in a private bucket and are viewed through short-lived signed URLs.
  */
 
-// WARNING: Replace these with your actual Supabase project credentials.
-const SUPABASE_URL = 'https://your-project.supabase.co';
-const SUPABASE_ANON_KEY = 'your-anon-key';
+// Supabase project credentials. The anon/publishable key is safe to expose in
+// client code — Row Level Security (see supabase-setup.sql) protects the data.
+const SUPABASE_URL = 'https://cufgvajtyymnfrxbsnle.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_j3z2y96Pm8ZSflwC2-LOaw_Xw7-NdQJ';
 
 const PUBLIC_BUCKET = 'public-wallpapers';
 const PRIVATE_BUCKET = 'private-wallpapers';
