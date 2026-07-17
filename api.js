@@ -172,14 +172,15 @@ async function publishCreation(title, isPublic, canvas) {
 
     showImgLoading(true);
     try {
-        const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+        // PNG (lossless) — JPEG's block artifacts ruin the crisp ASCII/line art.
+        const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
         const bucket = isPublic ? PUBLIC_BUCKET : PRIVATE_BUCKET;
         // Files live under the owner's uid folder — storage RLS keys off that.
-        const path = `${user.id}/wallpaper_${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`;
+        const path = `${user.id}/wallpaper_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
 
         const { error: uploadError } = await supabaseClient
             .storage.from(bucket)
-            .upload(path, imageBlob, { contentType: 'image/jpeg' });
+            .upload(path, imageBlob, { contentType: 'image/png' });
         if (uploadError) throw uploadError;
 
         // user_id is filled by the column default (auth.uid()); RLS enforces ownership.
@@ -402,15 +403,16 @@ function usePublicImage(url, config) {
 /** Downloads a gallery image as a JPEG (falls back to opening it if CORS blocks fetch). */
 async function downloadPublicImage(url, title) {
     if (!url) { showToast('Image not ready yet', 'error'); return; }
-    const name = (title || 'wallpaper').replace(/[^\w-]+/g, '_').slice(0, 60) + '.jpg';
+    const base = (title || 'wallpaper').replace(/[^\w-]+/g, '_').slice(0, 60);
     try {
         const res = await fetch(url);
         if (!res.ok) throw new Error('fetch failed');
         const blob = await res.blob();
+        const ext = (blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
         const obj = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = obj;
-        a.download = name;
+        a.download = `${base}.${ext}`;
         document.body.appendChild(a);
         a.click();
         a.remove();
